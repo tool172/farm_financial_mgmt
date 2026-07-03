@@ -4,3 +4,8 @@ toolbar:
   css:
     theme:
       css/financial-toolbar.css: {}
+
+dashboard:
+  css:
+    theme:
+      css/financial-dashboard.css: {}

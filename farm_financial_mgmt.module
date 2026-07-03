@@ -12,3 +12,23 @@
  */
 
 declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function farm_financial_mgmt_theme(): array {
+  return [
+    'financial_dashboard' => [
+      'variables' => [
+        'year' => NULL,
+        'currency' => 'USD',
+        'income' => '0.00',
+        'expense' => '0.00',
+        'net' => '0.00',
+        'recent' => [],
+        'add_url' => NULL,
+        'list_url' => NULL,
+      ],
+    ],
+  ];
+}

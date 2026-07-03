@@ -1,3 +1,11 @@
+farm_financial_mgmt.dashboard:
+  path: '/financial'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialDashboardController::view'
+    _title: 'Financial'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:

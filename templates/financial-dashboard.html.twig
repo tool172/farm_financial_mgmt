@@ -1,0 +1,55 @@
+{#
+/**
+ * @file
+ * Financial dashboard: income/expense/net summary + recent transactions.
+ */
+#}
+<div class="financial-dashboard">
+  <div class="ffm-cards">
+    <div class="ffm-card ffm-card--income">
+      <div class="ffm-card-label">{{ 'Income'|t }} ({{ year }})</div>
+      <div class="ffm-card-value">{{ currency }} {{ income }}</div>
+    </div>
+    <div class="ffm-card ffm-card--expense">
+      <div class="ffm-card-label">{{ 'Expense'|t }} ({{ year }})</div>
+      <div class="ffm-card-value">{{ currency }} {{ expense }}</div>
+    </div>
+    <div class="ffm-card ffm-card--net">
+      <div class="ffm-card-label">{{ 'Net'|t }} ({{ year }})</div>
+      <div class="ffm-card-value">{{ currency }} {{ net }}</div>
+    </div>
+  </div>
+
+  <div class="ffm-actions">
+    <a class="ffm-btn" href="{{ add_url }}">{{ 'Add transaction'|t }}</a>
+    <a class="ffm-btn ffm-btn--secondary" href="{{ list_url }}">{{ 'All transactions'|t }}</a>
+  </div>
+
+  <h2 class="ffm-heading">{{ 'Recent transactions'|t }}</h2>
+  {% if recent %}
+    <table class="ffm-table">
+      <thead>
+        <tr>
+          <th>{{ 'Date'|t }}</th>
+          <th>{{ 'Description'|t }}</th>
+          <th>{{ 'Direction'|t }}</th>
+          <th>{{ 'Total'|t }}</th>
+          <th>{{ 'Status'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in recent %}
+          <tr>
+            <td>{{ r.date }}</td>
+            <td><a href="{{ r.url }}">{{ r.label }}</a></td>
+            <td>{{ r.direction }}</td>
+            <td>{{ currency }} {{ r.total }}</td>
+            <td>{{ r.status }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="ffm-empty">{{ 'No transactions yet.'|t }}</p>
+  {% endif %}
+</div>

@@ -1,0 +1,33 @@
+/**
+ * Financial dashboard styling. Scoped under .financial-dashboard.
+ */
+.financial-dashboard { --ffm-border: rgba(0,0,0,0.1); --ffm-muted: #6b7280; }
+.financial-dashboard .ffm-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 700px) { .financial-dashboard .ffm-cards { grid-template-columns: 1fr; } }
+.financial-dashboard .ffm-card {
+  background: #fff;
+  border: 0.5px solid var(--ffm-border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.financial-dashboard .ffm-card-label { font-size: 12px; color: var(--ffm-muted); margin-bottom: 6px; }
+.financial-dashboard .ffm-card-value { font-size: 22px; font-weight: 600; line-height: 1; }
+.financial-dashboard .ffm-card--income .ffm-card-value { color: #2f7d32; }
+.financial-dashboard .ffm-card--expense .ffm-card-value { color: #a12d2d; }
+.financial-dashboard .ffm-actions { display: flex; gap: 8px; margin-bottom: 24px; }
+.financial-dashboard .ffm-btn {
+  display: inline-block; padding: 7px 14px; border-radius: 7px;
+  background: #1b5e20; color: #fff; text-decoration: none; font-size: 13px; font-weight: 500;
+}
+.financial-dashboard .ffm-btn--secondary { background: #fff; color: #1a1a1a; border: 0.5px solid var(--ffm-border); }
+.financial-dashboard .ffm-heading { font-size: 15px; margin: 0 0 10px; }
+.financial-dashboard .ffm-table { width: 100%; border-collapse: collapse; background: #fff; border: 0.5px solid var(--ffm-border); border-radius: 10px; overflow: hidden; }
+.financial-dashboard .ffm-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ffm-muted); padding: 8px 14px; border-bottom: 0.5px solid var(--ffm-border); }
+.financial-dashboard .ffm-table td { padding: 9px 14px; border-bottom: 0.5px solid var(--ffm-border); font-size: 13px; }
+.financial-dashboard .ffm-table tr:last-child td { border-bottom: none; }
+.financial-dashboard .ffm-empty { color: var(--ffm-muted); font-size: 13px; }
