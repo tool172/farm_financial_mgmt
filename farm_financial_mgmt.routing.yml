@@ -14,6 +14,46 @@ farm_financial_mgmt.report.profit_loss:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.report.spending:
+  path: '/financial/reports/spending'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::spendingByCategory'
+    _title: 'Spending by Category'
+  requirements:
+    _permission: 'view financial reports'
+
+farm_financial_mgmt.report.income:
+  path: '/financial/reports/income'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::incomeByCategory'
+    _title: 'Income by Category'
+  requirements:
+    _permission: 'view financial reports'
+
+farm_financial_mgmt.report.cash_flow:
+  path: '/financial/reports/cash-flow'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::cashFlow'
+    _title: 'Cash Flow'
+  requirements:
+    _permission: 'view financial reports'
+
+farm_financial_mgmt.report.monthly:
+  path: '/financial/reports/monthly'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::monthlyView'
+    _title: 'Monthly view'
+  requirements:
+    _permission: 'view financial reports'
+
+farm_financial_mgmt.report.per_record:
+  path: '/financial/reports/per-record'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::perRecord'
+    _title: 'Per-Record P&L'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:

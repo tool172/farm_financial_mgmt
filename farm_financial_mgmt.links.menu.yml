@@ -32,6 +32,41 @@ farm_financial_mgmt.report.profit_loss:
   parent: farm_financial_mgmt.reports
   weight: 0
 
+farm_financial_mgmt.report.spending:
+  title: 'Spending by Category'
+  route_name: farm_financial_mgmt.report.spending
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 1
+
+farm_financial_mgmt.report.income:
+  title: 'Income by Category'
+  route_name: farm_financial_mgmt.report.income
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 2
+
+farm_financial_mgmt.report.cash_flow:
+  title: 'Cash Flow'
+  route_name: farm_financial_mgmt.report.cash_flow
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 3
+
+farm_financial_mgmt.report.monthly:
+  title: 'Monthly view'
+  route_name: farm_financial_mgmt.report.monthly
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 4
+
+farm_financial_mgmt.report.per_record:
+  title: 'Per-Record P&L'
+  route_name: farm_financial_mgmt.report.per_record
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 5
+
 farm_financial_mgmt.settings:
   title: 'Settings'
   description: 'Currency and accounting method.'

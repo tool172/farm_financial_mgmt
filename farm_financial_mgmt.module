@@ -38,6 +38,7 @@ function farm_financial_mgmt_theme(): array {
         'summary' => [],
         'chart_id' => NULL,
         'sections' => [],
+        'grids' => [],
       ],
     ],
   ];

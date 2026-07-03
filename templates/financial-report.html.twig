@@ -55,4 +55,24 @@
     {% endif %}
   {% endfor %}
 
+  {% for grid in grids %}
+    <h3 class="ffm-heading">{{ grid.heading }}</h3>
+    {% if grid.rows %}
+      <table class="ffm-table">
+        <thead>
+          <tr>{% for h in grid.headers %}<th class="{{ h.num ? 'ffm-num' }}">{{ h.label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in grid.rows %}
+            <tr class="{{ row.total ? 'ffm-total' }}">
+              {% for cell in row.cells %}<td class="{{ cell.num ? 'ffm-num' }}">{% if cell.url %}<a href="{{ cell.url }}">{{ cell.value }}</a>{% else %}{{ cell.value }}{% endif %}</td>{% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="ffm-empty">{{ 'No data for this period.'|t }}</p>
+    {% endif %}
+  {% endfor %}
+
 </div>
