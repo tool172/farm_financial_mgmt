@@ -73,7 +73,7 @@ use Drupal\views\EntityViewsData;
     'add-form' => '/financial/transaction/add',
     'edit-form' => '/financial/transaction/{financial_transaction}/edit',
     'delete-form' => '/financial/transaction/{financial_transaction}/delete',
-    'collection' => '/financial/transactions',
+    'collection' => '/admin/content/financial-transaction',
   ],
   constraints: [
     'HomogeneousDirection' => [],

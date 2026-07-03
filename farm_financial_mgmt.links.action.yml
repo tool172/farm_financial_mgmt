@@ -1,0 +1,5 @@
+farm_financial_mgmt.transaction_add:
+  title: 'Add transaction'
+  route_name: entity.financial_transaction.add_form
+  appears_on:
+    - view.financial_transactions.page_1

@@ -1,0 +1,6 @@
+# Global toolbar tweak: currency icon for the Financial nav item. Attached on
+# every page via the preprocess_toolbar hook (ToolbarHooks).
+toolbar:
+  css:
+    theme:
+      css/financial-toolbar.css: {}

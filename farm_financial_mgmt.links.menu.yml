@@ -1,0 +1,18 @@
+# Top-level "Financial" toolbar item (farm_cattle_prices pattern: menu_name
+# admin, parent farm.base). Points at the transaction list for now; Task 1.12
+# repoints it to the /financial dashboard and adds a Transactions child.
+farm_financial_mgmt.financial:
+  title: 'Financial'
+  description: 'Ranch income and expense tracking.'
+  route_name: view.financial_transactions.page_1
+  menu_name: admin
+  parent: farm.base
+  weight: 60
+
+farm_financial_mgmt.settings:
+  title: 'Settings'
+  description: 'Currency and accounting method.'
+  route_name: farm_financial_mgmt.settings
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: 20
