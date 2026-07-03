@@ -1,0 +1,10 @@
+farm_financial_mgmt.settings:
+  type: config_object
+  label: 'Farm Financial Management settings'
+  mapping:
+    currency:
+      type: string
+      label: 'Currency (ISO 4217 code)'
+    accounting_method:
+      type: string
+      label: 'Accounting method (cash|accrual)'
