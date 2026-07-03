@@ -75,6 +75,9 @@ use Drupal\views\EntityViewsData;
     'delete-form' => '/financial/transaction/{financial_transaction}/delete',
     'collection' => '/financial/transactions',
   ],
+  constraints: [
+    'HomogeneousDirection' => [],
+  ],
 )]
 class FinancialTransaction extends RevisionableContentEntityBase implements FinancialTransactionInterface {
 
