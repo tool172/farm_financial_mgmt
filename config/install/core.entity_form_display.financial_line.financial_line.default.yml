@@ -1,0 +1,71 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+  module:
+    - farm_financial_mgmt
+    - options
+id: financial_line.financial_line.default
+targetEntityType: financial_line
+bundle: financial_line
+mode: default
+content:
+  category:
+    type: options_select
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  quantity:
+    type: number
+    weight: 1
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  unit_price:
+    type: number
+    weight: 2
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  unit:
+    type: options_select
+    weight: 3
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  amount:
+    type: number
+    weight: 4
+    region: content
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+  asset:
+    type: entity_reference_autocomplete
+    weight: 5
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 40
+      placeholder: ''
+    third_party_settings: {  }
+  memo:
+    type: string_textfield
+    weight: 6
+    region: content
+    settings:
+      size: 40
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  transaction: true
+  txn_date: true
+  reporting_year: true
+  direction: true
+  revision_log_message: true

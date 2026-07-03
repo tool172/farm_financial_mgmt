@@ -1,0 +1,105 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+  module:
+    - farm_financial_mgmt
+    - datetime
+    - file
+    - inline_entity_form
+    - options
+    - text
+id: financial_transaction.financial_transaction.default
+targetEntityType: financial_transaction
+bundle: financial_transaction
+mode: default
+content:
+  direction:
+    type: options_select
+    weight: 0
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  date:
+    type: datetime_default
+    weight: 1
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  reporting_year:
+    type: number
+    weight: 2
+    region: content
+    settings:
+      placeholder: 'Defaults to the year of the date'
+    third_party_settings: {  }
+  counterparty:
+    type: entity_reference_autocomplete
+    weight: 3
+    region: content
+    settings:
+      match_operator: CONTAINS
+      match_limit: 10
+      size: 40
+      placeholder: ''
+    third_party_settings: {  }
+  payment_method:
+    type: options_select
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  payment_status:
+    type: options_select
+    weight: 5
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  reference:
+    type: string_textfield
+    weight: 6
+    region: content
+    settings:
+      size: 40
+      placeholder: 'Check #, invoice #, confirmation #'
+    third_party_settings: {  }
+  lines:
+    type: inline_entity_form_complex
+    weight: 7
+    region: content
+    settings:
+      form_mode: default
+      override_labels: true
+      label_singular: line
+      label_plural: lines
+      allow_new: true
+      allow_existing: false
+      match_operator: CONTAINS
+      allow_duplicate: false
+      collapsible: false
+      collapsed: false
+      revision: false
+    third_party_settings: {  }
+  receipt:
+    type: file_generic
+    weight: 8
+    region: content
+    settings:
+      progress_indicator: throbber
+    third_party_settings: {  }
+  notes:
+    type: text_textarea
+    weight: 9
+    region: content
+    settings:
+      rows: 3
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  label: true
+  total: true
+  uid: true
+  created: true
+  revision_log_message: true
