@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.tax_form
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.tax_form
+field_name: tax_form
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Tax form'
+description: 'Which tax form this category maps to (Phase 3).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: list_string

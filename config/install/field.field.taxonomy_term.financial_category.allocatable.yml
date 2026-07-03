@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.allocatable
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.allocatable
+field_name: allocatable
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Allocatable'
+description: 'Unattributed expenses here feed the AUE running-cost pool (Phase 2).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

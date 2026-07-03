@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+name: 'Financial Category'
+vid: financial_category
+description: 'Income and expense categories. Two-level: top-level Income/Expense (direction) → working categories.'
+weight: 0

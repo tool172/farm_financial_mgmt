@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.qb_account
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.qb_account
+field_name: qb_account
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'QuickBooks account'
+description: 'QuickBooks account name for export mapping (Phase 4).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: string

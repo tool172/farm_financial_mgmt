@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+name: 'Financial Contact'
+vid: financial_contact
+description: 'Counterparties (vendors and/or customers) for financial transactions.'
+weight: 0

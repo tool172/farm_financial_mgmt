@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.requires_cost_basis
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.requires_cost_basis
+field_name: requires_cost_basis
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Requires cost basis'
+description: 'Purchased-for-resale income needing cost-basis netting (Phase 3).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

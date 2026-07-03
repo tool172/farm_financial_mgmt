@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.contact_type
+    - taxonomy.vocabulary.financial_contact
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_contact.contact_type
+field_name: contact_type
+entity_type: taxonomy_term
+bundle: financial_contact
+label: 'Contact type'
+description: 'Vendor, customer, or both.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: list_string

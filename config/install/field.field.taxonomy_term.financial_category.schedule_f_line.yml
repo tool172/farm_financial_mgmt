@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.schedule_f_line
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.schedule_f_line
+field_name: schedule_f_line
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Schedule F line'
+description: 'IRS Schedule F line mapping (Phase 3).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: string

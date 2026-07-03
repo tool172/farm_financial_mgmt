@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.direction
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.direction
+field_name: direction
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Direction'
+description: 'Income or expense (denormalized from the top-level parent).'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: list_string
