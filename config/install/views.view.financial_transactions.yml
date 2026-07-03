@@ -1,0 +1,178 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+  module:
+    - farm_financial_mgmt
+id: financial_transactions
+label: 'Financial transactions'
+module: views
+description: 'Ledger of financial transactions.'
+tag: ''
+base_table: financial_transaction
+base_field: id
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: Transactions
+      use_ajax: true
+      access:
+        type: perm
+        options:
+          perm: 'view financial transactions'
+      cache:
+        type: tag
+        options: {  }
+      query:
+        type: views_query
+        options: {  }
+      exposed_form:
+        type: basic
+        options:
+          submit_button: Filter
+          reset_button: true
+          reset_button_label: Reset
+      pager:
+        type: full
+        options:
+          items_per_page: 50
+      style:
+        type: table
+        options:
+          default: date
+          columns:
+            date: date
+            label: label
+            direction: direction
+            counterparty: counterparty
+            total: total
+            payment_status: payment_status
+          info:
+            date:
+              sortable: true
+              default_sort_order: desc
+            label:
+              sortable: true
+            direction: {  }
+            counterparty: {  }
+            total:
+              sortable: true
+            payment_status: {  }
+      row:
+        type: fields
+      fields:
+        date:
+          id: date
+          table: financial_transaction
+          field: date
+          entity_type: financial_transaction
+          entity_field: date
+          plugin_id: field
+          type: datetime_default
+          settings:
+            format_type: html_date
+        label:
+          id: label
+          table: financial_transaction
+          field: label
+          entity_type: financial_transaction
+          entity_field: label
+          plugin_id: field
+          type: string
+          settings:
+            link_to_entity: true
+        direction:
+          id: direction
+          table: financial_transaction
+          field: direction
+          entity_type: financial_transaction
+          entity_field: direction
+          plugin_id: field
+          type: list_default
+        counterparty:
+          id: counterparty
+          table: financial_transaction
+          field: counterparty
+          entity_type: financial_transaction
+          entity_field: counterparty
+          plugin_id: field
+          type: entity_reference_label
+          settings:
+            link: false
+        total:
+          id: total
+          table: financial_transaction
+          field: total
+          entity_type: financial_transaction
+          entity_field: total
+          plugin_id: field
+          type: number_decimal
+        payment_status:
+          id: payment_status
+          table: financial_transaction
+          field: payment_status
+          entity_type: financial_transaction
+          entity_field: payment_status
+          plugin_id: field
+          type: list_default
+      sorts:
+        date:
+          id: date
+          table: financial_transaction
+          field: date
+          entity_type: financial_transaction
+          entity_field: date
+          plugin_id: datetime
+          order: DESC
+      filters:
+        direction:
+          id: direction
+          table: financial_transaction
+          field: direction
+          entity_type: financial_transaction
+          entity_field: direction
+          plugin_id: list_field
+          exposed: true
+          expose:
+            operator_id: direction_op
+            label: Direction
+            identifier: direction
+            multiple: false
+        reporting_year:
+          id: reporting_year
+          table: financial_transaction
+          field: reporting_year
+          entity_type: financial_transaction
+          entity_field: reporting_year
+          plugin_id: numeric
+          operator: '='
+          exposed: true
+          expose:
+            operator_id: reporting_year_op
+            label: 'Reporting year'
+            identifier: reporting_year
+      header: {  }
+      footer: {  }
+      empty:
+        area:
+          id: area
+          table: views
+          field: area_text_custom
+          plugin_id: text_custom
+          empty: true
+          content: 'No transactions yet.'
+  page_1:
+    id: page_1
+    display_title: Page
+    display_plugin: page
+    position: 1
+    display_options:
+      path: financial/transactions
+      menu:
+        type: none
