@@ -1,0 +1,15 @@
+name: 'Farm Financial Management'
+type: module
+description: 'Ranch income and expense tracking with financial reporting, tax planning, and CSV interchange. Built on purpose-built content entities (Option C), not the farmOS log model.'
+package: 'farmOS'
+core_version_requirement: ^10 || ^11
+version: '1.0.0-dev'
+dependencies:
+  - 'asset:asset'
+  - 'farm:farm_unit'
+  - 'inline_entity_form:inline_entity_form'
+  - 'drupal:taxonomy'
+  - 'drupal:views'
+  - 'drupal:file'
+  - 'drupal:options'
+  - 'drupal:user'

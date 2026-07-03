@@ -1,0 +1,4 @@
+# Permissions are defined in Task 1.11:
+#   manage financial transactions | view financial transactions
+#   view financial reports        | administer financial mgmt
+# Intentionally empty during the Task 1.1 scaffold.

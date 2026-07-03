@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Farm Financial Management — ranch income and expense tracking.
+ *
+ * Built on purpose-built content entities (financial_transaction +
+ * financial_line, both RevisionableContentEntityBase) rather than the farmOS
+ * log model. Lifecycle logic and hooks live in OOP hook classes under
+ * src/Hook/ using PHP 8 #[Hook] attributes (matching farm_grazing_rotation_plan),
+ * so this file is intentionally minimal.
+ */
+
+declare(strict_types=1);

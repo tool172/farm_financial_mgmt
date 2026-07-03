@@ -1,0 +1,3 @@
+# Services (TransactionTotalizer, ReportBuilder, RunningCostCalculator, AUE
+# providers) are registered in later tasks. Intentionally empty during scaffold.
+services: {}
