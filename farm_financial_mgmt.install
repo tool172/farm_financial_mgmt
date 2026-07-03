@@ -21,6 +21,29 @@ function farm_financial_mgmt_install(): void {
 }
 
 /**
+ * Implements hook_uninstall().
+ *
+ * Removes the seeded taxonomy terms before the vocabularies are torn down.
+ * farmOS's entity_reference_integrity_enforce protects a parent term while its
+ * children still reference it via `parent`, so terms must be deleted
+ * children-first or the whole uninstall aborts.
+ */
+function farm_financial_mgmt_uninstall(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  foreach (['financial_category', 'financial_contact'] as $vid) {
+    $terms = $storage->loadByProperties(['vid' => $vid]);
+    $children = array_filter($terms, fn($t) => (bool) $t->get('parent')->target_id);
+    $parents = array_filter($terms, fn($t) => !$t->get('parent')->target_id);
+    if ($children) {
+      $storage->delete($children);
+    }
+    if ($parents) {
+      $storage->delete($parents);
+    }
+  }
+}
+
+/**
  * Seeds default financial categories. Idempotent (find-or-create by name).
  */
 function _farm_financial_mgmt_seed_categories(): void {

@@ -12,4 +12,5 @@ dependencies:
   - 'drupal:views'
   - 'drupal:file'
   - 'drupal:options'
+  - 'drupal:datetime'
   - 'drupal:user'
