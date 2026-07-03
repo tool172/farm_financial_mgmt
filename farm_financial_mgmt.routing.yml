@@ -4,5 +4,4 @@ farm_financial_mgmt.settings:
     _form: 'Drupal\farm_financial_mgmt\Form\SettingsForm'
     _title: 'Financial settings'
   requirements:
-    # Interim permission; switched to 'administer financial mgmt' in Task 1.11.
-    _permission: 'administer site configuration'
+    _permission: 'administer financial mgmt'

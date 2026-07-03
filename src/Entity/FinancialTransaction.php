@@ -41,7 +41,7 @@ use Drupal\views\EntityViewsData;
     'view_builder' => 'Drupal\Core\Entity\EntityViewBuilder',
     'list_builder' => 'Drupal\Core\Entity\EntityListBuilder',
     'views_data' => EntityViewsData::class,
-    'access' => 'Drupal\Core\Entity\EntityAccessControlHandler',
+    'access' => 'Drupal\farm_financial_mgmt\Access\FinancialAccessControlHandler',
     'form' => [
       'default' => ContentEntityForm::class,
       'add' => ContentEntityForm::class,

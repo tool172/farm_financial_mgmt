@@ -1,4 +1,16 @@
-# Permissions are defined in Task 1.11:
-#   manage financial transactions | view financial transactions
-#   view financial reports        | administer financial mgmt
-# Intentionally empty during the Task 1.1 scaffold.
+manage financial transactions:
+  title: 'Manage financial transactions'
+  description: 'Create, update, and delete financial transactions and their lines.'
+
+view financial transactions:
+  title: 'View financial transactions'
+  description: 'View the financial ledger.'
+
+view financial reports:
+  title: 'View financial reports'
+  description: 'View financial reports and the dashboard (separable from the raw ledger).'
+
+administer financial mgmt:
+  title: 'Administer financial management'
+  description: 'Manage categories, contacts, and module settings.'
+  restrict access: true

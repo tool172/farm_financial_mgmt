@@ -6,7 +6,6 @@ namespace Drupal\farm_financial_mgmt\Entity;
 
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityDeleteForm;
-use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\RevisionableContentEntityBase;
@@ -40,7 +39,7 @@ use Drupal\views\EntityViewsData;
     'view_builder' => 'Drupal\Core\Entity\EntityViewBuilder',
     'list_builder' => 'Drupal\Core\Entity\EntityListBuilder',
     'views_data' => EntityViewsData::class,
-    'access' => EntityAccessControlHandler::class,
+    'access' => 'Drupal\farm_financial_mgmt\Access\FinancialAccessControlHandler',
     'form' => [
       'default' => ContentEntityForm::class,
       'add' => ContentEntityForm::class,
