@@ -17,6 +17,21 @@ farm_financial_mgmt.transactions:
   parent: farm_financial_mgmt.financial
   weight: 0
 
+# Reports parent (nolink); report children added through Phase 2.
+farm_financial_mgmt.reports:
+  title: 'Reports'
+  route_name: '<nolink>'
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: 10
+
+farm_financial_mgmt.report.profit_loss:
+  title: 'Profit & Loss'
+  route_name: farm_financial_mgmt.report.profit_loss
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 0
+
 farm_financial_mgmt.settings:
   title: 'Settings'
   description: 'Currency and accounting method.'

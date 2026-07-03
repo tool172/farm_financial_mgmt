@@ -1,0 +1,58 @@
+{#
+/**
+ * @file
+ * Generic financial report layout: summary cards, optional chart, and
+ * breakdown sections. Shared by the Phase 2 report controllers.
+ */
+#}
+<div class="financial-report">
+
+  <form class="ffm-report-filter" method="get">
+    <label>{{ 'Reporting year'|t }}
+      <input type="number" name="year" value="{{ year }}" min="2000" max="2100" />
+    </label>
+    <button type="submit">{{ 'Apply'|t }}</button>
+  </form>
+
+  {% if summary %}
+    <div class="ffm-cards">
+      {% for c in summary %}
+        <div class="ffm-card ffm-card--{{ c.kind }}">
+          <div class="ffm-card-label">{{ c.label }}</div>
+          <div class="ffm-card-value">{{ currency }} {{ c.value }}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if chart_id %}
+    <div class="ffm-chart-wrap" style="height:260px;">
+      <canvas id="{{ chart_id }}"></canvas>
+    </div>
+  {% endif %}
+
+  {% for section in sections %}
+    <h3 class="ffm-heading">{{ section.heading }}</h3>
+    {% if section.rows %}
+      <table class="ffm-table">
+        <thead>
+          <tr><th>{{ section.col1|default('Category'|t) }}</th><th class="ffm-num">{{ 'Amount'|t }}</th></tr>
+        </thead>
+        <tbody>
+          {% for row in section.rows %}
+            <tr>
+              <td>{% if row.url %}<a href="{{ row.url }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td>
+              <td class="ffm-num">{{ currency }} {{ row.amount }}</td>
+            </tr>
+          {% endfor %}
+          {% if section.total is not null %}
+            <tr class="ffm-total"><td>{{ 'Total'|t }}</td><td class="ffm-num">{{ currency }} {{ section.total }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="ffm-empty">{{ 'No data for this period.'|t }}</p>
+    {% endif %}
+  {% endfor %}
+
+</div>

@@ -6,6 +6,14 @@ farm_financial_mgmt.dashboard:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.report.profit_loss:
+  path: '/financial/reports/profit-loss'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::profitAndLoss'
+    _title: 'Profit & Loss'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:

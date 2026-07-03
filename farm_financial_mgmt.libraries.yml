@@ -9,3 +9,18 @@ dashboard:
   css:
     theme:
       css/financial-dashboard.css: {}
+
+report:
+  js:
+    # Chart.js from CDN (same as farm_cattle_prices).
+    https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js:
+      type: external
+      minified: true
+    js/financial-report.js: {}
+  css:
+    theme:
+      css/financial-report.css: {}
+  dependencies:
+    - core/drupal
+    - core/drupalSettings
+    - core/once

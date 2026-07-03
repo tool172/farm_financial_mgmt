@@ -30,5 +30,15 @@ function farm_financial_mgmt_theme(): array {
         'list_url' => NULL,
       ],
     ],
+    'financial_report' => [
+      'variables' => [
+        'report_title' => NULL,
+        'currency' => 'USD',
+        'year' => NULL,
+        'summary' => [],
+        'chart_id' => NULL,
+        'sections' => [],
+      ],
+    ],
   ];
 }
