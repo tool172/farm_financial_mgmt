@@ -4,3 +4,9 @@ services:
   farm_financial_mgmt.transaction_totalizer:
     alias: Drupal\farm_financial_mgmt\Service\TransactionTotalizer
     public: true
+
+  Drupal\farm_financial_mgmt\Service\ReportBuilder:
+    autowire: true
+  farm_financial_mgmt.report_builder:
+    alias: Drupal\farm_financial_mgmt\Service\ReportBuilder
+    public: true
