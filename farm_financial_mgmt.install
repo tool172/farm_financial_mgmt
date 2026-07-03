@@ -1,0 +1,106 @@
+<?php
+
+/**
+ * @file
+ * Install/uninstall hooks for Farm Financial Management.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_install().
+ *
+ * Seeds the default two-level financial_category tree (SPEC §12). Categories are
+ * content (taxonomy terms), so config alone cannot ship them. Tax fields
+ * (schedule_f_line/tax_form/capital/requires_cost_basis/qb_account) are left
+ * unset here and populated in Phase 3; only `direction` and `allocatable` are
+ * set now.
+ */
+function farm_financial_mgmt_install(): void {
+  _farm_financial_mgmt_seed_categories();
+}
+
+/**
+ * Seeds default financial categories. Idempotent (find-or-create by name).
+ */
+function _farm_financial_mgmt_seed_categories(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+
+  $ensure = function (string $name, array $values) use ($storage) {
+    $existing = $storage->loadByProperties(['vid' => 'financial_category', 'name' => $name]);
+    if ($existing) {
+      return reset($existing);
+    }
+    $term = $storage->create(['vid' => 'financial_category', 'name' => $name] + $values);
+    $term->save();
+    return $term;
+  };
+
+  // Top-level terms encode direction.
+  $income = $ensure('Income', ['direction' => 'income', 'weight' => 0]);
+  $expense = $ensure('Expense', ['direction' => 'expense', 'weight' => 1]);
+
+  // Income children — allocation applies to expenses only, so all alloc = FALSE.
+  $income_children = [
+    'Sales of Purchased Livestock / Resale',
+    'Sales of Raised Livestock & Products',
+    'Cooperative Distributions',
+    'Agricultural Program Payments',
+    'CCC Loans',
+    'Crop Insurance Proceeds',
+    'Custom Hire Income',
+    'Other Income',
+    'Lease / Rental Income',
+    'Sale of Breeding/Draft/Dairy/Sport Livestock',
+  ];
+  $weight = 0;
+  foreach ($income_children as $name) {
+    $ensure($name, [
+      'parent' => $income->id(),
+      'direction' => 'income',
+      'allocatable' => FALSE,
+      'weight' => $weight++,
+    ]);
+  }
+
+  // Expense children — [name => allocatable]. TRUE only for direct/variable,
+  // consumption-scaling costs (SPEC §7/§12); overhead/fixed and capital = FALSE.
+  $expense_children = [
+    'Feed' => TRUE,
+    'Veterinary, Breeding & Medicine' => TRUE,
+    'Rent/Lease – Other (incl. land)' => TRUE,
+    'Supplies' => TRUE,
+    'Gasoline, Fuel & Oil' => TRUE,
+    'Labor Hired' => TRUE,
+    'Freight & Trucking' => TRUE,
+    'Custom Hire / Machine Work' => TRUE,
+    'Car & Truck' => FALSE,
+    'Chemicals' => FALSE,
+    'Conservation' => FALSE,
+    'Employee Benefits' => FALSE,
+    'Fertilizer & Lime' => FALSE,
+    'Insurance' => FALSE,
+    'Interest – Mortgage' => FALSE,
+    'Interest – Other' => FALSE,
+    'Pension & Profit-Sharing' => FALSE,
+    'Rent/Lease – Vehicles, Machinery, Equipment' => FALSE,
+    'Repairs & Maintenance' => FALSE,
+    'Seeds & Plants' => FALSE,
+    'Storage & Warehousing' => FALSE,
+    'Taxes' => FALSE,
+    'Utilities' => FALSE,
+    'Other Expense' => FALSE,
+    'Purchase of Breeding Stock' => FALSE,
+    'Equipment / Machinery Purchase' => FALSE,
+    'Land Improvement' => FALSE,
+  ];
+  $weight = 0;
+  foreach ($expense_children as $name => $allocatable) {
+    $ensure($name, [
+      'parent' => $expense->id(),
+      'direction' => 'expense',
+      'allocatable' => $allocatable,
+      'weight' => $weight++,
+    ]);
+  }
+}
