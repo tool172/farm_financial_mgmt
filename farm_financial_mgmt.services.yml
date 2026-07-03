@@ -1,3 +1,6 @@
-# Services (TransactionTotalizer, ReportBuilder, RunningCostCalculator, AUE
-# providers) are registered in later tasks. Intentionally empty during scaffold.
-services: {}
+services:
+  Drupal\farm_financial_mgmt\Service\TransactionTotalizer:
+    autowire: true
+  farm_financial_mgmt.transaction_totalizer:
+    alias: Drupal\farm_financial_mgmt\Service\TransactionTotalizer
+    public: true

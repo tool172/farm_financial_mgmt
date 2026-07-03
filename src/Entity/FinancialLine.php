@@ -95,10 +95,13 @@ class FinancialLine extends RevisionableContentEntityBase implements FinancialLi
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type): array {
     $fields = parent::baseFieldDefinitions($entity_type);
 
-    // NOTE: the `transaction` back-reference (Commerce order-item → order
-    // pattern) is added in Task 1.6, once the financial_transaction entity type
-    // exists to be referenced. It is populated by the transaction's postsave
-    // write-through.
+    // Parent back-reference (Commerce order-item → order pattern). Populated by
+    // the transaction's postsave write-through (TransactionTotalizer), so not
+    // required at the field level.
+    $fields['transaction'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Transaction'))
+      ->setSetting('target_type', 'financial_transaction')
+      ->setRevisionable(TRUE);
 
     // Per-line category — required; makes split transactions work.
     $fields['category'] = BaseFieldDefinition::create('entity_reference')
