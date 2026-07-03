@@ -128,6 +128,24 @@ class ReportBuilder {
   }
 
   /**
+   * Total of unattributed, allocatable expense lines (the AUE pool).
+   *
+   * SUM(amount) of expense lines with NO asset whose category is flagged
+   * allocatable — the shared pool the per-animal running cost divides by AUE
+   * (SPEC §7). Overhead/fixed categories (allocatable = false) are excluded.
+   */
+  public function allocatablePool(array $filters = []): float {
+    $filters['direction'] = 'expense';
+    unset($filters['asset']);
+    $query = $this->aggregateQuery($filters)
+      ->notExists('asset')
+      ->condition('category.entity.allocatable', 1)
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($query[0]['amount_sum'] ?? 0);
+  }
+
+  /**
    * Loads matching line rows (txn_date, amount, direction, category, asset).
    *
    * Used for PHP-side bucketing (monthly, per-record breakdowns).

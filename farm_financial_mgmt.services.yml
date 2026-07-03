@@ -10,3 +10,21 @@ services:
   farm_financial_mgmt.report_builder:
     alias: Drupal\farm_financial_mgmt\Service\ReportBuilder
     public: true
+
+  # AUE provider — swappable. Override the AueProviderInterface alias to
+  # GrazingAueProvider in a site's services to use grazing snapshots.
+  Drupal\farm_financial_mgmt\Service\Aue\DefaultAueProvider:
+    autowire: true
+  Drupal\farm_financial_mgmt\Service\Aue\GrazingAueProvider:
+    autowire: true
+  Drupal\farm_financial_mgmt\Service\Aue\AueProviderInterface:
+    alias: Drupal\farm_financial_mgmt\Service\Aue\DefaultAueProvider
+  farm_financial_mgmt.aue_provider:
+    alias: Drupal\farm_financial_mgmt\Service\Aue\AueProviderInterface
+    public: true
+
+  Drupal\farm_financial_mgmt\Service\RunningCostCalculator:
+    autowire: true
+  farm_financial_mgmt.running_cost_calculator:
+    alias: Drupal\farm_financial_mgmt\Service\RunningCostCalculator
+    public: true
