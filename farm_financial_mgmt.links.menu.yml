@@ -74,6 +74,14 @@ farm_financial_mgmt.report.tax_summary:
   parent: farm_financial_mgmt.reports
   weight: 6
 
+farm_financial_mgmt.import_export:
+  title: 'Import / Export'
+  description: 'CSV export (CPA, QuickBooks) and own-format import.'
+  route_name: farm_financial_mgmt.import_export
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: 15
+
 farm_financial_mgmt.settings:
   title: 'Settings'
   description: 'Currency and accounting method.'
