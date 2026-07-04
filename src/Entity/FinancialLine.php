@@ -167,6 +167,20 @@ class FinancialLine extends RevisionableContentEntityBase implements FinancialLi
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+    // Optional enterprise (species) scope for an UNATTRIBUTED allocatable
+    // expense: tag a cattle feed bill "Cattle" so its pool allocates only to
+    // cattle, not proportionally across every species (SPEC §7 refinement).
+    // Empty = farm-wide shared cost, split across all animals by AUE.
+    $fields['enterprise'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Enterprise'))
+      ->setDescription(new TranslatableMarkup('Optional: the species this shared expense belongs to. Scopes the allocatable pool.'))
+      ->setSetting('target_type', 'taxonomy_term')
+      ->setSetting('handler', 'default:taxonomy_term')
+      ->setSetting('handler_settings', ['target_bundles' => ['animal_type' => 'animal_type']])
+      ->setRevisionable(TRUE)
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
     // Denormalized from the parent transaction (write-through on txn postsave).
     // Load-bearing reporting optimization (SPEC §3.2): lets P&L / by-category /
     // per-record reports query the single financial_line table with no join.

@@ -63,6 +63,12 @@ content:
       size: 40
       placeholder: ''
     third_party_settings: {  }
+  enterprise:
+    type: options_select
+    weight: 7
+    region: content
+    settings: {  }
+    third_party_settings: {  }
 hidden:
   transaction: true
   txn_date: true

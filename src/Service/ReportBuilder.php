@@ -136,18 +136,28 @@ class ReportBuilder {
    * Total of unattributed, allocatable expense lines (the AUE pool).
    *
    * SUM(amount) of expense lines with NO asset whose category is flagged
-   * allocatable — the shared pool the per-animal running cost divides by AUE
-   * (SPEC §7). Overhead/fixed categories (allocatable = false) are excluded.
+   * allocatable — the pool the per-animal running cost divides by AUE (SPEC §7).
+   * Overhead/fixed categories (allocatable = false) are excluded.
+   *
+   * @param mixed $enterprise
+   *   NULL = whole pool regardless of enterprise; 'shared' = only lines with no
+   *   enterprise (farm-wide); array of term ids = only lines tagged to those
+   *   species (the species-scoped pool).
    */
-  public function allocatablePool(array $filters = []): float {
+  public function allocatablePool(array $filters = [], $enterprise = NULL): float {
     $filters['direction'] = 'expense';
     unset($filters['asset']);
     $query = $this->aggregateQuery($filters)
       ->notExists('asset')
-      ->condition('category.entity.allocatable', 1)
-      ->aggregate('amount', 'SUM')
-      ->execute();
-    return (float) ($query[0]['amount_sum'] ?? 0);
+      ->condition('category.entity.allocatable', 1);
+    if ($enterprise === 'shared') {
+      $query->notExists('enterprise');
+    }
+    elseif (is_array($enterprise) && $enterprise) {
+      $query->condition('enterprise', $enterprise, 'IN');
+    }
+    $result = $query->aggregate('amount', 'SUM')->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
   }
 
   /**

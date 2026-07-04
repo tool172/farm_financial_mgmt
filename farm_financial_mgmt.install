@@ -163,6 +163,21 @@ function farm_financial_mgmt_update_10401(): void {
 }
 
 /**
+ * Refinement: install the financial_line `enterprise` field (in place).
+ *
+ * New optional entity_reference field for species-scoped allocatable pools.
+ * No data migration — existing lines have an empty enterprise (farm-wide).
+ */
+function farm_financial_mgmt_update_10402(): void {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getFieldStorageDefinition('enterprise', 'financial_line') === NULL) {
+    $definition = \Drupal::service('entity_field.manager')
+      ->getBaseFieldDefinitions('financial_line')['enterprise'];
+    $manager->installFieldStorageDefinition('enterprise', 'financial_line', 'farm_financial_mgmt', $definition);
+  }
+}
+
+/**
  * Defaults each category's qb_account to its label when unset. Operator-editable
  * afterward to match a specific QuickBooks chart of accounts. Idempotent.
  */
