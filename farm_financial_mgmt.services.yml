@@ -34,3 +34,9 @@ services:
   farm_financial_mgmt.tax_summary_builder:
     alias: Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder
     public: true
+
+  Drupal\farm_financial_mgmt\Service\Export\CsvExporter:
+    autowire: true
+  farm_financial_mgmt.csv_exporter:
+    alias: Drupal\farm_financial_mgmt\Service\Export\CsvExporter
+    public: true
