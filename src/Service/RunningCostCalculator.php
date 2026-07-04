@@ -32,11 +32,23 @@ class RunningCostCalculator {
   /**
    * Computes an animal's running cost over [start, end] (unix seconds).
    *
+   * @param int $animal_id
+   *   The animal to cost.
+   * @param int $start
+   *   Period start (unix seconds).
+   * @param int $end
+   *   Period end (unix seconds).
+   * @param int[]|null $herd_animal_ids
+   *   The cost-sharing group the shared pool is divided across (e.g. the cattle
+   *   herd). Pass this so a cattle feed pool is not AUE-diluted across other
+   *   species (SPEC §9). When NULL, the provider's default herd (all animals
+   *   present in the period) is used.
+   *
    * @return array
    *   Breakdown: attributable, shared_pool, aue, total_herd_aue, aue_share,
    *   period_days, present_days, time_weight, allocated, running_cost.
    */
-  public function getRunningCost(int $animal_id, int $start, int $end): array {
+  public function getRunningCost(int $animal_id, int $start, int $end, ?array $herd_animal_ids = NULL): array {
     $animal = $this->entityTypeManager->getStorage('asset')->load($animal_id);
     $filters = [
       'from' => date('Y-m-d', $start),
@@ -46,10 +58,14 @@ class RunningCostCalculator {
     $attributable = $animal ? $this->reportBuilder->assetTotals($animal_id, $filters)['expense'] : 0.0;
     $pool = $this->reportBuilder->allocatablePool($filters);
 
-    // Herd AUE total over the period.
+    // Herd AUE total over the period, restricted to those actually present.
     $storage = $this->entityTypeManager->getStorage('asset');
+    $herd_ids = $herd_animal_ids ?? $this->aueProvider->getHerd($start, $end);
     $total_aue = 0.0;
-    foreach ($storage->loadMultiple($this->aueProvider->getHerd($start, $end)) as $herd_animal) {
+    foreach ($storage->loadMultiple($herd_ids) as $herd_animal) {
+      if ($herd_animal->bundle() !== 'animal' || $this->aueProvider->getPresenceDays($herd_animal, $start, $end) <= 0) {
+        continue;
+      }
       $total_aue += $this->aueProvider->getAnimalAue($herd_animal);
     }
 
