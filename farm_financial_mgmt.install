@@ -11,13 +11,14 @@ declare(strict_types=1);
  * Implements hook_install().
  *
  * Seeds the default two-level financial_category tree (SPEC §12). Categories are
- * content (taxonomy terms), so config alone cannot ship them. Tax fields
- * (schedule_f_line/tax_form/capital/requires_cost_basis/qb_account) are left
- * unset here and populated in Phase 3; only `direction` and `allocatable` are
- * set now.
+ * content (taxonomy terms), so config alone cannot ship them. Direction and
+ * allocatable are set by the seed; the Phase 3 tax fields (schedule_f_line/
+ * tax_form/capital/requires_cost_basis) are populated by the shared helper so a
+ * fresh install matches an updated one.
  */
 function farm_financial_mgmt_install(): void {
   _farm_financial_mgmt_seed_categories();
+  _farm_financial_mgmt_populate_tax_fields();
 }
 
 /**
@@ -125,5 +126,86 @@ function _farm_financial_mgmt_seed_categories(): void {
       'allocatable' => $allocatable,
       'weight' => $weight++,
     ]);
+  }
+}
+
+/**
+ * Task 3.1: populate the dormant tax fields on the seeded categories.
+ *
+ * Runs in place against the existing terms (no uninstall/reseed) — the Phase 3
+ * cutover from the reinstall loop to update hooks, now that the module holds
+ * data worth keeping.
+ */
+function farm_financial_mgmt_update_10301(): void {
+  _farm_financial_mgmt_populate_tax_fields();
+}
+
+/**
+ * The Schedule-F tax mapping for the seeded categories (SPEC §12).
+ *
+ * name => [schedule_f_line, tax_form, capital, requires_cost_basis].
+ * tax_form: schedule_f | form_4797 | form_4835 | none.
+ */
+function _farm_financial_mgmt_tax_map(): array {
+  return [
+    // Income.
+    'Sales of Purchased Livestock / Resale' => ['1a', 'schedule_f', FALSE, TRUE],
+    'Sales of Raised Livestock & Products' => ['2', 'schedule_f', FALSE, FALSE],
+    'Cooperative Distributions' => ['3', 'schedule_f', FALSE, FALSE],
+    'Agricultural Program Payments' => ['4', 'schedule_f', FALSE, FALSE],
+    'CCC Loans' => ['5', 'schedule_f', FALSE, FALSE],
+    'Crop Insurance Proceeds' => ['6', 'schedule_f', FALSE, FALSE],
+    'Custom Hire Income' => ['7', 'schedule_f', FALSE, FALSE],
+    'Other Income' => ['8', 'schedule_f', FALSE, FALSE],
+    'Lease / Rental Income' => ['', 'form_4835', FALSE, FALSE],
+    'Sale of Breeding/Draft/Dairy/Sport Livestock' => ['', 'form_4797', FALSE, FALSE],
+    // Expense (Schedule F Part II).
+    'Car & Truck' => ['10', 'schedule_f', FALSE, FALSE],
+    'Chemicals' => ['11', 'schedule_f', FALSE, FALSE],
+    'Conservation' => ['12', 'schedule_f', FALSE, FALSE],
+    'Custom Hire / Machine Work' => ['13', 'schedule_f', FALSE, FALSE],
+    'Employee Benefits' => ['15', 'schedule_f', FALSE, FALSE],
+    'Feed' => ['16', 'schedule_f', FALSE, FALSE],
+    'Fertilizer & Lime' => ['17', 'schedule_f', FALSE, FALSE],
+    'Freight & Trucking' => ['18', 'schedule_f', FALSE, FALSE],
+    'Gasoline, Fuel & Oil' => ['19', 'schedule_f', FALSE, FALSE],
+    'Insurance' => ['20', 'schedule_f', FALSE, FALSE],
+    'Interest – Mortgage' => ['21a', 'schedule_f', FALSE, FALSE],
+    'Interest – Other' => ['21b', 'schedule_f', FALSE, FALSE],
+    'Labor Hired' => ['22', 'schedule_f', FALSE, FALSE],
+    'Pension & Profit-Sharing' => ['23', 'schedule_f', FALSE, FALSE],
+    'Rent/Lease – Vehicles, Machinery, Equipment' => ['24a', 'schedule_f', FALSE, FALSE],
+    'Rent/Lease – Other (incl. land)' => ['24b', 'schedule_f', FALSE, FALSE],
+    'Repairs & Maintenance' => ['25', 'schedule_f', FALSE, FALSE],
+    'Seeds & Plants' => ['26', 'schedule_f', FALSE, FALSE],
+    'Storage & Warehousing' => ['27', 'schedule_f', FALSE, FALSE],
+    'Supplies' => ['28', 'schedule_f', FALSE, FALSE],
+    'Taxes' => ['29', 'schedule_f', FALSE, FALSE],
+    'Utilities' => ['30', 'schedule_f', FALSE, FALSE],
+    'Veterinary, Breeding & Medicine' => ['31', 'schedule_f', FALSE, FALSE],
+    'Other Expense' => ['32', 'schedule_f', FALSE, FALSE],
+    // Capital — depreciated, not deducted; no direct tax-form line.
+    'Purchase of Breeding Stock' => ['', 'none', TRUE, FALSE],
+    'Equipment / Machinery Purchase' => ['', 'none', TRUE, FALSE],
+    'Land Improvement' => ['', 'none', TRUE, FALSE],
+  ];
+}
+
+/**
+ * Sets tax fields on the seeded category terms. Idempotent.
+ */
+function _farm_financial_mgmt_populate_tax_fields(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  foreach (_farm_financial_mgmt_tax_map() as $name => [$schedule_f_line, $tax_form, $capital, $requires_cost_basis]) {
+    $terms = $storage->loadByProperties(['vid' => 'financial_category', 'name' => $name]);
+    if (!$terms) {
+      continue;
+    }
+    $term = reset($terms);
+    $term->set('schedule_f_line', $schedule_f_line !== '' ? $schedule_f_line : NULL);
+    $term->set('tax_form', $tax_form);
+    $term->set('capital', $capital);
+    $term->set('requires_cost_basis', $requires_cost_basis);
+    $term->save();
   }
 }
