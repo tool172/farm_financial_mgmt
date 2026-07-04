@@ -114,6 +114,9 @@ function _farm_financial_mgmt_seed_categories(): void {
     'Taxes' => FALSE,
     'Utilities' => FALSE,
     'Other Expense' => FALSE,
+    // Cost basis of purchased-for-resale livestock (Schedule F 1b); nets against
+    // 1a sales rather than being a Part II deduction. See _farm..._tax_map().
+    'Cost of Purchased Livestock (Resale)' => FALSE,
     'Purchase of Breeding Stock' => FALSE,
     'Equipment / Machinery Purchase' => FALSE,
     'Land Improvement' => FALSE,
@@ -137,6 +140,17 @@ function _farm_financial_mgmt_seed_categories(): void {
  * data worth keeping.
  */
 function farm_financial_mgmt_update_10301(): void {
+  _farm_financial_mgmt_populate_tax_fields();
+}
+
+/**
+ * Task 3.2: add the resale cost-basis (SF 1b) category and refresh tax fields.
+ *
+ * Idempotent find-or-create, in place — creates the new term on existing
+ * installs without disturbing existing categories or data.
+ */
+function farm_financial_mgmt_update_10302(): void {
+  _farm_financial_mgmt_seed_categories();
   _farm_financial_mgmt_populate_tax_fields();
 }
 
@@ -184,6 +198,7 @@ function _farm_financial_mgmt_tax_map(): array {
     'Utilities' => ['30', 'schedule_f', FALSE, FALSE],
     'Veterinary, Breeding & Medicine' => ['31', 'schedule_f', FALSE, FALSE],
     'Other Expense' => ['32', 'schedule_f', FALSE, FALSE],
+    'Cost of Purchased Livestock (Resale)' => ['1b', 'schedule_f', FALSE, TRUE],
     // Capital — depreciated, not deducted; no direct tax-form line.
     'Purchase of Breeding Stock' => ['', 'none', TRUE, FALSE],
     'Equipment / Machinery Purchase' => ['', 'none', TRUE, FALSE],

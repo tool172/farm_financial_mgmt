@@ -54,6 +54,14 @@ farm_financial_mgmt.report.per_record:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.report.tax_summary:
+  path: '/financial/reports/tax-summary'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::taxSummary'
+    _title: 'Tax Summary'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:

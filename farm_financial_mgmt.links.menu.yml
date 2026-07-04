@@ -67,6 +67,13 @@ farm_financial_mgmt.report.per_record:
   parent: farm_financial_mgmt.reports
   weight: 5
 
+farm_financial_mgmt.report.tax_summary:
+  title: 'Tax Summary (Schedule F)'
+  route_name: farm_financial_mgmt.report.tax_summary
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 6
+
 farm_financial_mgmt.settings:
   title: 'Settings'
   description: 'Currency and accounting method.'

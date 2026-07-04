@@ -28,3 +28,9 @@ services:
   farm_financial_mgmt.running_cost_calculator:
     alias: Drupal\farm_financial_mgmt\Service\RunningCostCalculator
     public: true
+
+  Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder:
+    autowire: true
+  farm_financial_mgmt.tax_summary_builder:
+    alias: Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder
+    public: true

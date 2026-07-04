@@ -7,6 +7,7 @@ namespace Drupal\farm_financial_mgmt\Controller;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
+use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -20,6 +21,7 @@ class FinancialReportController extends ControllerBase {
     protected ReportBuilder $reportBuilder,
     protected TimeInterface $time,
     protected RequestStack $requestStack,
+    protected TaxSummaryBuilder $taxSummaryBuilder,
   ) {}
 
   /**
@@ -30,7 +32,69 @@ class FinancialReportController extends ControllerBase {
       $container->get('farm_financial_mgmt.report_builder'),
       $container->get('datetime.time'),
       $container->get('request_stack'),
+      $container->get('farm_financial_mgmt.tax_summary_builder'),
     );
+  }
+
+  /**
+   * Tax Summary (Schedule F) — Task 3.2/3.3/3.4.
+   */
+  public function taxSummary(): array {
+    $filters = $this->filters();
+    $currency = $this->currency();
+    $data = $this->taxSummaryBuilder->build($filters);
+    $sf = $data['schedule_f'];
+
+    $summary = [
+      ['kind' => 'income', 'label' => $this->t('Sch F income'), 'value' => number_format($sf['income_total'], 2)],
+      ['kind' => 'expense', 'label' => $this->t('Sch F expenses'), 'value' => number_format($sf['expense_total'], 2)],
+      ['kind' => 'net', 'label' => $this->t('Net farm profit'), 'value' => number_format($sf['net_profit'], 2)],
+    ];
+
+    $grids = [
+      $this->taxGrid($this->t('Schedule F — Part I: Income (@method basis)', ['@method' => $data['method']]), $sf['income'], $currency, $sf['income_total']),
+      $this->taxGrid($this->t('Schedule F — Part II: Expenses'), $sf['expense'], $currency, $sf['expense_total']),
+    ];
+    if ($data['form_4797']) {
+      $grids[] = $this->taxGrid($this->t('Form 4797 — Breeding/draft/dairy/sport stock (separate from Sch F)'), $data['form_4797'], $currency);
+    }
+    if ($data['form_4835']) {
+      $grids[] = $this->taxGrid($this->t('Form 4835 — Farm rental income (separate from Sch F)'), $data['form_4835'], $currency);
+    }
+    if ($data['schedule_e']) {
+      $grids[] = $this->taxGrid($this->t('Schedule E — Cash rent (separate from Sch F)'), $data['schedule_e'], $currency);
+    }
+    if ($data['capital']) {
+      $grids[] = $this->taxGrid($this->t('Capital — depreciated, not deducted (Sch F line 14, Phase 5)'), $data['capital'], $currency);
+    }
+
+    return $this->reportRender($this->t('Tax Summary (Schedule F)'), $filters, $summary, NULL, NULL, [], $grids);
+  }
+
+  /**
+   * Builds a Line / Description / Amount grid from tax rows.
+   */
+  protected function taxGrid($heading, array $rows, string $currency, ?float $total = NULL): array {
+    $grid_rows = [];
+    foreach ($rows as $row) {
+      $grid_rows[] = ['cells' => [
+        ['value' => $row['line'] !== '' ? $row['line'] : '—'],
+        ['value' => $row['label']],
+        ['value' => $currency . ' ' . number_format($row['amount'], 2), 'num' => TRUE],
+      ]];
+    }
+    if ($total !== NULL) {
+      $grid_rows[] = ['total' => TRUE, 'cells' => [
+        ['value' => ''],
+        ['value' => (string) $this->t('Total')],
+        ['value' => $currency . ' ' . number_format($total, 2), 'num' => TRUE],
+      ]];
+    }
+    return [
+      'heading' => $heading,
+      'headers' => [['label' => $this->t('Line')], ['label' => $this->t('Description')], ['label' => $this->t('Amount'), 'num' => TRUE]],
+      'rows' => $grid_rows,
+    ];
   }
 
   /**

@@ -53,6 +53,11 @@ class ReportBuilder {
     if (!empty($filters['asset'])) {
       $query->condition('asset', $filters['asset']);
     }
+    // Cash-basis: only lines whose transaction has actually been paid. Reaches
+    // the payment_status on the parent transaction (not denormalized on lines).
+    if (!empty($filters['payment_status'])) {
+      $query->condition('transaction.entity.payment_status', $filters['payment_status']);
+    }
   }
 
   /**
