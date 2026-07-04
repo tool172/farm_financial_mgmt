@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Drupal\farm_financial_mgmt\Controller;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
 use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -34,6 +37,19 @@ class FinancialReportController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('farm_financial_mgmt.tax_summary_builder'),
     );
+  }
+
+  /**
+   * Access for the Tax Summary route: gated by the tax-planning setting.
+   */
+  public function taxAccess(AccountInterface $account): AccessResultInterface {
+    $config = $this->config('farm_financial_mgmt.settings');
+    $enabled = $config->get('tax_planning_enabled') ?? TRUE;
+    if (!$enabled) {
+      return AccessResult::forbidden('Tax planning is disabled.')->addCacheableDependency($config);
+    }
+    return AccessResult::allowedIfHasPermission($account, 'view financial reports')
+      ->addCacheableDependency($config);
   }
 
   /**

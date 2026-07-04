@@ -77,6 +77,13 @@ class SettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
+    $form['tax_planning_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable tax planning (Schedule F)'),
+      '#description' => $this->t('Turns the Tax Summary report on or off. Category tax mappings are retained either way, so this is a display toggle, not a data change.'),
+      '#default_value' => $config->get('tax_planning_enabled') ?? TRUE,
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -87,7 +94,10 @@ class SettingsForm extends ConfigFormBase {
     $this->config(self::SETTINGS)
       ->set('currency', $form_state->getValue('currency'))
       ->set('accounting_method', $form_state->getValue('accounting_method'))
+      ->set('tax_planning_enabled', (bool) $form_state->getValue('tax_planning_enabled'))
       ->save();
+    // Rebuild menu links so the Tax Summary link appears/disappears immediately.
+    \Drupal::service('plugin.manager.menu.link')->rebuild();
     parent::submitForm($form, $form_state);
   }
 

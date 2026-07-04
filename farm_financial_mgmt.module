@@ -14,6 +14,21 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_menu_links_discovered_alter().
+ *
+ * Hides the Tax Summary link when tax planning is turned off in settings. The
+ * route is also access-gated; this keeps the link out of the toolbar (which
+ * caches aggressively). SettingsForm rebuilds menu links when the toggle
+ * changes so this re-runs.
+ */
+function farm_financial_mgmt_menu_links_discovered_alter(array &$links): void {
+  $enabled = \Drupal::config('farm_financial_mgmt.settings')->get('tax_planning_enabled') ?? TRUE;
+  if (!$enabled) {
+    unset($links['farm_financial_mgmt.report.tax_summary']);
+  }
+}
+
+/**
  * Implements hook_theme().
  */
 function farm_financial_mgmt_theme(): array {

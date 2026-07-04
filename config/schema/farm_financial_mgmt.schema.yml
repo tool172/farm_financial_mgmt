@@ -8,3 +8,6 @@ farm_financial_mgmt.settings:
     accounting_method:
       type: string
       label: 'Accounting method (cash|accrual)'
+    tax_planning_enabled:
+      type: boolean
+      label: 'Enable Schedule F tax planning/tracking'
