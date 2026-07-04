@@ -38,10 +38,25 @@ class FinancialExportController extends ControllerBase {
     $filters = ($year !== NULL && $year !== '') ? ['year' => (int) $year] : [];
     $csv = $this->csvExporter->toCsv($filters);
 
-    $filename = 'financial-export' . ($year ? '-' . (int) $year : '') . '.csv';
+    return $this->download($csv, 'financial-export' . ($year ? '-' . (int) $year : ''));
+  }
+
+  /**
+   * QuickBooks (QBO-compatible) CSV download (Task 4.2).
+   */
+  public function quickbooksCsv(): Response {
+    $year = $this->requestStack->getCurrentRequest()->query->get('year');
+    $filters = ($year !== NULL && $year !== '') ? ['year' => (int) $year] : [];
+    return $this->download($this->csvExporter->toQbCsv($filters), 'quickbooks-export' . ($year ? '-' . (int) $year : ''));
+  }
+
+  /**
+   * Wraps a CSV string in a download response.
+   */
+  protected function download(string $csv, string $basename): Response {
     $response = new Response($csv);
     $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $basename . '.csv"');
     return $response;
   }
 

@@ -11,7 +11,7 @@ field_name: qb_account
 entity_type: taxonomy_term
 type: string
 settings:
-  max_length: 32
+  max_length: 255
   is_ascii: false
   case_sensitive: false
 module: core

@@ -108,11 +108,71 @@ class CsvExporter {
   }
 
   /**
-   * Renders the rows as a CSV string.
+   * QuickBooks-mappable rows (Task 4.2), header first.
+   *
+   * QBO-compatible columns: Date, Payee, Account (from the category's
+   * qb_account), Amount (income positive, expense negative), Memo. One row per
+   * line so each maps to its account.
+   */
+  public function qbRows(array $filters = []): array {
+    $rows = [['Date', 'Payee', 'Account', 'Amount', 'Memo']];
+    $line_storage = $this->entityTypeManager->getStorage('financial_line');
+    $query = $line_storage->getQuery()->accessCheck(FALSE);
+    if (!empty($filters['year'])) {
+      $query->condition('reporting_year', $filters['year']);
+    }
+    if (!empty($filters['from'])) {
+      $query->condition('txn_date', $filters['from'], '>=');
+    }
+    if (!empty($filters['to'])) {
+      $query->condition('txn_date', $filters['to'], '<=');
+    }
+    $query->sort('txn_date', 'ASC')->sort('id', 'ASC');
+    $ids = $query->execute();
+    if (empty($ids)) {
+      return $rows;
+    }
+    foreach ($line_storage->loadMultiple($ids) as $line) {
+      $transaction = $line->get('transaction')->entity;
+      $category = $line->get('category')->entity;
+      $counterparty = $transaction ? $transaction->get('counterparty')->entity : NULL;
+      $account = $category && !$category->get('qb_account')->isEmpty()
+        ? $category->get('qb_account')->value
+        : ($category?->label() ?? '');
+      $amount = (float) $line->get('amount')->value;
+      // QBO convention: money in positive, money out negative.
+      $signed = $line->get('direction')->value === 'expense' ? -$amount : $amount;
+      $rows[] = [
+        $line->get('txn_date')->value ?? '',
+        $counterparty?->label() ?? '',
+        $account,
+        number_format($signed, 2, '.', ''),
+        (string) $line->get('memo')->value ?: ($transaction?->label() ?? ''),
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * Renders the own-format rows as a CSV string.
    */
   public function toCsv(array $filters = []): string {
+    return $this->render($this->rows($filters));
+  }
+
+  /**
+   * Renders the QuickBooks rows as a CSV string.
+   */
+  public function toQbCsv(array $filters = []): string {
+    return $this->render($this->qbRows($filters));
+  }
+
+  /**
+   * Renders rows to a CSV string.
+   */
+  protected function render(array $rows): string {
     $handle = fopen('php://temp', 'r+');
-    foreach ($this->rows($filters) as $row) {
+    foreach ($rows as $row) {
       fputcsv($handle, array_values($row), ',', '"', '\\');
     }
     rewind($handle);

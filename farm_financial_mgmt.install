@@ -19,6 +19,7 @@ declare(strict_types=1);
 function farm_financial_mgmt_install(): void {
   _farm_financial_mgmt_seed_categories();
   _farm_financial_mgmt_populate_tax_fields();
+  _farm_financial_mgmt_populate_qb_accounts();
 }
 
 /**
@@ -152,6 +153,39 @@ function farm_financial_mgmt_update_10301(): void {
 function farm_financial_mgmt_update_10302(): void {
   _farm_financial_mgmt_seed_categories();
   _farm_financial_mgmt_populate_tax_fields();
+}
+
+/**
+ * Task 4.2: default the QuickBooks account name on categories (in place).
+ */
+function farm_financial_mgmt_update_10401(): void {
+  _farm_financial_mgmt_populate_qb_accounts();
+}
+
+/**
+ * Defaults each category's qb_account to its label when unset. Operator-editable
+ * afterward to match a specific QuickBooks chart of accounts. Idempotent.
+ */
+function _farm_financial_mgmt_populate_qb_accounts(): void {
+  // Widen qb_account (shipped at 32) to hold full account names; the field has
+  // no data, so this is a safe in-place storage change.
+  $field_storage = \Drupal\field\Entity\FieldStorageConfig::loadByName('taxonomy_term', 'qb_account');
+  if ($field_storage && (int) $field_storage->getSetting('max_length') < 255) {
+    $field_storage->setSetting('max_length', 255);
+    $field_storage->save();
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  foreach ($storage->loadByProperties(['vid' => 'financial_category']) as $term) {
+    // Only the working (child) categories map to QB accounts.
+    if (!$term->get('parent')->target_id) {
+      continue;
+    }
+    if ($term->get('qb_account')->isEmpty()) {
+      $term->set('qb_account', $term->label());
+      $term->save();
+    }
+  }
 }
 
 /**

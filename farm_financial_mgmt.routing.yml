@@ -70,6 +70,14 @@ farm_financial_mgmt.export.cpa_csv:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.export.quickbooks_csv:
+  path: '/financial/export/quickbooks-csv'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialExportController::quickbooksCsv'
+    _title: 'Export QuickBooks CSV'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:
