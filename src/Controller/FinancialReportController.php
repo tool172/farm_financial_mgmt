@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\farm_financial_mgmt\Service\DepreciationEngine;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
 use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -25,6 +26,7 @@ class FinancialReportController extends ControllerBase {
     protected TimeInterface $time,
     protected RequestStack $requestStack,
     protected TaxSummaryBuilder $taxSummaryBuilder,
+    protected DepreciationEngine $depreciationEngine,
   ) {}
 
   /**
@@ -36,6 +38,7 @@ class FinancialReportController extends ControllerBase {
       $container->get('datetime.time'),
       $container->get('request_stack'),
       $container->get('farm_financial_mgmt.tax_summary_builder'),
+      $container->get('farm_financial_mgmt.depreciation_engine'),
     );
   }
 
@@ -111,6 +114,142 @@ class FinancialReportController extends ControllerBase {
       'headers' => [['label' => $this->t('Line')], ['label' => $this->t('Description')], ['label' => $this->t('Amount'), 'num' => TRUE]],
       'rows' => $grid_rows,
     ];
+  }
+
+  /**
+   * Depreciation schedule (Phase 5.3). Per-asset MACRS detail; year total feeds
+   * Schedule F line 14. Raised/zero-basis and land rows shown as non-depreciable.
+   */
+  public function depreciationSchedule(): array {
+    $filters = $this->filters();
+    $year = (int) $filters['year'];
+    $currency = $this->currency();
+    $engine = $this->depreciationEngine;
+    $engine->resetWarnings();
+
+    $assets = $this->entityTypeManager()->getStorage('depreciable_asset')->loadMultiple();
+    // Stable order: by placed-in-service date, then label.
+    uasort($assets, static function ($a, $b) {
+      return [$a->get('in_service_date')->value, $a->label()] <=> [$b->get('in_service_date')->value, $b->label()];
+    });
+
+    $rows = [];
+    $line_14 = 0.0;
+    $accum_total = 0.0;
+    $book_total = 0.0;
+    $deprec_count = 0;
+    foreach ($assets as $asset) {
+      $basis = (float) $asset->get('basis')->value;
+      $class = $asset->get('macrs_class')->value;
+      $method = $asset->get('depreciation_method')->value;
+      $s179 = (float) $asset->get('section_179')->value;
+      $schedule = $engine->schedule($asset);
+
+      if (empty($schedule)) {
+        // Non-depreciable: raised (zero basis) or land ("none") — a normal state.
+        $status = $asset->get('basis_type')->value === 'raised'
+          ? $this->t('Raised — 0 basis, not depreciable')
+          : $this->t('Not depreciable');
+        $rows[] = ['cells' => [
+          ['value' => $asset->label()],
+          ['value' => $this->methodClassLabel($class, $method)],
+          ['value' => $currency . ' ' . number_format($basis, 2), 'num' => TRUE],
+          ['value' => '—', 'num' => TRUE],
+          ['value' => '—', 'num' => TRUE],
+          ['value' => '—', 'num' => TRUE],
+          ['value' => '—', 'num' => TRUE],
+          ['value' => $currency . ' ' . number_format($basis, 2), 'num' => TRUE],
+          ['value' => $status],
+        ]];
+        continue;
+      }
+
+      $bonus_pct = $engine->bonusPctFor($asset, (int) substr((string) $asset->get('in_service_date')->value, 0, 4));
+      $bonus = round(($basis - min($s179, $basis)) * $bonus_pct / 100, 2);
+
+      $year_dep = $schedule[$year]['depreciation'] ?? 0.0;
+      // Disposed before this year: no current-year depreciation (mirror totalForYear).
+      if (!$asset->get('disposed_date')->isEmpty()
+        && (int) substr((string) $asset->get('disposed_date')->value, 0, 4) < $year) {
+        $year_dep = 0.0;
+      }
+      $accum = $engine->accumulatedDepreciation($asset, $year);
+      $book = $engine->bookValue($asset, $year);
+
+      $line_14 += $year_dep;
+      $accum_total += $accum;
+      $book_total += $book;
+      $deprec_count++;
+
+      $rows[] = ['cells' => [
+        ['value' => $asset->label()],
+        ['value' => $this->methodClassLabel($class, $method)],
+        ['value' => $currency . ' ' . number_format($basis, 2), 'num' => TRUE],
+        ['value' => $s179 > 0 ? $currency . ' ' . number_format($s179, 2) : '—', 'num' => TRUE],
+        ['value' => $bonus > 0 ? $currency . ' ' . number_format($bonus, 2) : '—', 'num' => TRUE],
+        ['value' => $currency . ' ' . number_format($year_dep, 2), 'num' => TRUE],
+        ['value' => $currency . ' ' . number_format($accum, 2), 'num' => TRUE],
+        ['value' => $currency . ' ' . number_format($book, 2), 'num' => TRUE],
+        ['value' => ''],
+      ]];
+    }
+
+    // Total row = Schedule F line 14 for the year.
+    $rows[] = ['total' => TRUE, 'cells' => [
+      ['value' => (string) $this->t('Total — Schedule F line 14')],
+      ['value' => ''],
+      ['value' => ''],
+      ['value' => ''],
+      ['value' => ''],
+      ['value' => $currency . ' ' . number_format($line_14, 2), 'num' => TRUE],
+      ['value' => $currency . ' ' . number_format($accum_total, 2), 'num' => TRUE],
+      ['value' => $currency . ' ' . number_format($book_total, 2), 'num' => TRUE],
+      ['value' => ''],
+    ]];
+
+    // Surface loud degradation (e.g. an unconfigured §179/bonus year).
+    foreach ($engine->getWarnings() as $warning) {
+      $this->messenger()->addWarning($warning);
+    }
+
+    $grid = [
+      'heading' => $this->t('Depreciation schedule — @year', ['@year' => $year]),
+      'headers' => [
+        ['label' => $this->t('Asset')],
+        ['label' => $this->t('Class / method')],
+        ['label' => $this->t('Basis'), 'num' => TRUE],
+        ['label' => $this->t('§179'), 'num' => TRUE],
+        ['label' => $this->t('Bonus'), 'num' => TRUE],
+        ['label' => $this->t('Depreciation @year', ['@year' => $year]), 'num' => TRUE],
+        ['label' => $this->t('Accumulated'), 'num' => TRUE],
+        ['label' => $this->t('Book value'), 'num' => TRUE],
+        ['label' => $this->t('Status')],
+      ],
+      'rows' => $rows,
+    ];
+
+    $summary = [
+      ['kind' => 'expense', 'label' => $this->t('Depreciation (line 14)'), 'value' => number_format($line_14, 2)],
+      ['kind' => 'net', 'label' => $this->t('Depreciable assets'), 'value' => (string) $deprec_count],
+      ['kind' => 'income', 'label' => $this->t('Book value'), 'value' => number_format($book_total, 2)],
+    ];
+
+    return $this->reportRender($this->t('Depreciation Schedule'), $filters, $summary, NULL, NULL, [], [$grid]);
+  }
+
+  /**
+   * A compact "5-year · GDS 200%" style label from class + method machine names.
+   */
+  protected function methodClassLabel(?string $class, ?string $method): string {
+    $class_label = $class ? str_replace('yr', '-yr', $class) : '—';
+    $method_label = match ($method) {
+      'macrs_gds_200' => 'GDS 200%',
+      'macrs_gds_150' => 'GDS 150%',
+      'macrs_ads' => 'ADS',
+      'straight_line' => 'SL',
+      default => (string) $method,
+    };
+    return $class_label . ' · ' . $method_label;
   }
 
   /**

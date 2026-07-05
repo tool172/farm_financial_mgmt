@@ -25,6 +25,9 @@ function farm_financial_mgmt_menu_links_discovered_alter(array &$links): void {
   $enabled = \Drupal::config('farm_financial_mgmt.settings')->get('tax_planning_enabled') ?? TRUE;
   if (!$enabled) {
     unset($links['farm_financial_mgmt.report.tax_summary']);
+    // The depreciation schedule is tax-facing (feeds Sch F line 14) and its
+    // route is tax-gated, so hide its link alongside the Tax Summary.
+    unset($links['farm_financial_mgmt.report.depreciation']);
   }
 }
 

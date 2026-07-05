@@ -74,6 +74,13 @@ farm_financial_mgmt.report.tax_summary:
   parent: farm_financial_mgmt.reports
   weight: 6
 
+farm_financial_mgmt.report.depreciation:
+  title: 'Depreciation Schedule'
+  route_name: farm_financial_mgmt.report.depreciation
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 7
+
 farm_financial_mgmt.depreciable_assets:
   title: 'Depreciable Assets'
   description: 'Capital assets and their tax basis (Phase 5).'
