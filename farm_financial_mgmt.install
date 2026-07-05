@@ -298,6 +298,25 @@ function farm_financial_mgmt_update_10501(): void {
 }
 
 /**
+ * Phase 5.2: install the depreciation limits config (§179 caps, bonus %).
+ *
+ * Imports the shipped config on existing installs. Only established years are
+ * seeded; current/future years are left unset so the engine degrades loudly
+ * (PHASE5 §8) rather than applying a stale year. Idempotent.
+ */
+function farm_financial_mgmt_update_10502(): void {
+  $config = \Drupal::configFactory()->getEditable('farm_financial_mgmt.depreciation_limits');
+  if ($config->isNew() || empty($config->get('years'))) {
+    $path = \Drupal::service('extension.list.module')->getPath('farm_financial_mgmt') . '/config/install';
+    $data = (new \Drupal\Core\Config\FileStorage($path))->read('farm_financial_mgmt.depreciation_limits');
+    if ($data) {
+      unset($data['_core'], $data['uuid']);
+      $config->setData($data)->save();
+    }
+  }
+}
+
+/**
  * Adds macrs_class/depreciation_method to the financial_category vocabulary.
  *
  * Idempotent — creates each field storage + instance only when absent (safe on

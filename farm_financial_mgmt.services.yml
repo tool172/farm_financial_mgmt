@@ -35,6 +35,12 @@ services:
     alias: Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder
     public: true
 
+  Drupal\farm_financial_mgmt\Service\DepreciationEngine:
+    autowire: true
+  farm_financial_mgmt.depreciation_engine:
+    alias: Drupal\farm_financial_mgmt\Service\DepreciationEngine
+    public: true
+
   Drupal\farm_financial_mgmt\Service\Export\CsvExporter:
     autowire: true
   farm_financial_mgmt.csv_exporter:

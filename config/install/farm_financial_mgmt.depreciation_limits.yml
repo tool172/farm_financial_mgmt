@@ -1,0 +1,16 @@
+# Year-dependent §179 caps and bonus depreciation %. The most time-volatile
+# numbers in the module: §179 caps are inflation-indexed annually and bonus is
+# on a legislated phase-down whose future values are not settled law. Seed ONLY
+# established years; leave the current/future years UNSET so the engine degrades
+# loudly ($0/0% + a surfaced "update in settings" message) rather than silently
+# applying a stale prior year. Operator-editable (Settings, Phase 5 follow-on).
+years:
+  2023:
+    section_179_cap: 1160000
+    bonus_pct: 80
+  2024:
+    section_179_cap: 1220000
+    bonus_pct: 60
+  2025:
+    section_179_cap: 1250000
+    bonus_pct: 40

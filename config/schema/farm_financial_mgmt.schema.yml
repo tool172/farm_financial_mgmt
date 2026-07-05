@@ -11,3 +11,21 @@ farm_financial_mgmt.settings:
     tax_planning_enabled:
       type: boolean
       label: 'Enable Schedule F tax planning/tracking'
+
+farm_financial_mgmt.depreciation_limits:
+  type: config_object
+  label: 'Depreciation year limits (§179 cap, bonus %)'
+  mapping:
+    years:
+      type: sequence
+      label: 'Per-year limits keyed by tax year'
+      sequence:
+        type: mapping
+        label: 'Limits for a tax year'
+        mapping:
+          section_179_cap:
+            type: integer
+            label: 'Section 179 maximum deduction'
+          bonus_pct:
+            type: integer
+            label: 'Bonus depreciation percentage'
