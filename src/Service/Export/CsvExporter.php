@@ -39,6 +39,46 @@ class CsvExporter {
     'unit',
     'asset',
     'memo',
+    'liability',
+    'principal_portion',
+  ];
+
+  /**
+   * Own-format columns for the financial_liability entity (Phase 5.9).
+   */
+  public const LIABILITY_COLUMNS = [
+    'liability_label',
+    'lender',
+    'liability_type',
+    'original_principal',
+    'interest_rate',
+    'origination_date',
+    'term_months',
+    'enterprise',
+    'notes',
+  ];
+
+  /**
+   * Own-format columns for the depreciable_asset entity (Phase 5.9).
+   */
+  public const ASSET_COLUMNS = [
+    'asset_label',
+    'basis_type',
+    'basis',
+    'in_service_date',
+    'macrs_class',
+    'depreciation_method',
+    'mid_month',
+    'salvage_value',
+    'section_179',
+    'bonus_pct',
+    'disposed_date',
+    'market_value',
+    'enterprise',
+    'farm_asset',
+    'acquisition',
+    'disposal_txn',
+    'notes',
   ];
 
   public function __construct(
@@ -102,9 +142,85 @@ class CsvExporter {
         'unit' => $unit?->label() ?? '',
         'asset' => implode(';', $asset_ids),
         'memo' => (string) $line->get('memo')->value,
+        // Loan interest/principal split (Phase 5.9): the liability by label
+        // (stable across a round-trip) and the principal portion.
+        'liability' => (!$line->get('liability')->isEmpty() && $line->get('liability')->entity)
+          ? $line->get('liability')->entity->label() : '',
+        'principal_portion' => $line->get('principal_portion')->value ?? '',
       ];
     }
     return $rows;
+  }
+
+  /**
+   * Own-format rows for all liabilities (header first).
+   */
+  public function liabilityRows(): array {
+    $rows = [self::LIABILITY_COLUMNS];
+    foreach ($this->entityTypeManager->getStorage('financial_liability')->loadMultiple() as $liability) {
+      $lender = $liability->get('lender')->entity;
+      $enterprise = $liability->get('enterprise')->entity;
+      $rows[] = [
+        'liability_label' => $liability->label(),
+        'lender' => $lender?->label() ?? '',
+        'liability_type' => $liability->get('liability_type')->value ?? '',
+        'original_principal' => $liability->get('original_principal')->value ?? '',
+        'interest_rate' => $liability->get('interest_rate')->value ?? '',
+        'origination_date' => $liability->get('origination_date')->value ?? '',
+        'term_months' => $liability->get('term_months')->value ?? '',
+        'enterprise' => $enterprise?->label() ?? '',
+        'notes' => (string) $liability->get('notes')->value,
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * Own-format rows for all depreciable assets (header first).
+   *
+   * farm_asset / acquisition / disposal_txn are exported by id (best-effort on
+   * restore, like the line asset references); the intrinsic basis, class,
+   * method and dates — what depreciation and 4797 need — are self-contained.
+   */
+  public function depreciableAssetRows(): array {
+    $rows = [self::ASSET_COLUMNS];
+    foreach ($this->entityTypeManager->getStorage('depreciable_asset')->loadMultiple() as $asset) {
+      $enterprise = $asset->get('enterprise')->entity;
+      $rows[] = [
+        'asset_label' => $asset->label(),
+        'basis_type' => $asset->get('basis_type')->value ?? '',
+        'basis' => $asset->get('basis')->value ?? '',
+        'in_service_date' => $asset->get('in_service_date')->value ?? '',
+        'macrs_class' => $asset->get('macrs_class')->value ?? '',
+        'depreciation_method' => $asset->get('depreciation_method')->value ?? '',
+        'mid_month' => $asset->get('mid_month')->value ? '1' : '0',
+        'salvage_value' => $asset->get('salvage_value')->value ?? '',
+        'section_179' => $asset->get('section_179')->value ?? '',
+        'bonus_pct' => $asset->get('bonus_pct')->value ?? '',
+        'disposed_date' => $asset->get('disposed_date')->value ?? '',
+        'market_value' => $asset->get('market_value')->value ?? '',
+        'enterprise' => $enterprise?->label() ?? '',
+        'farm_asset' => $asset->get('farm_asset')->target_id ?? '',
+        'acquisition' => $asset->get('acquisition')->target_id ?? '',
+        'disposal_txn' => $asset->get('disposal_txn')->target_id ?? '',
+        'notes' => (string) $asset->get('notes')->value,
+      ];
+    }
+    return $rows;
+  }
+
+  /**
+   * Renders the liabilities export as CSV.
+   */
+  public function toLiabilityCsv(): string {
+    return $this->render($this->liabilityRows());
+  }
+
+  /**
+   * Renders the depreciable-assets export as CSV.
+   */
+  public function toDepreciableAssetCsv(): string {
+    return $this->render($this->depreciableAssetRows());
   }
 
   /**

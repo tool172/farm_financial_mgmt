@@ -62,11 +62,24 @@ class ImportExportForm extends FormBase {
       '#value' => $this->t('Download QuickBooks CSV'),
       '#submit' => ['::exportQuickbooks'],
     ];
+    $form['export']['capital_note'] = [
+      '#markup' => '<p>' . $this->t('The capital layer (all years) exports as its own files:') . '</p>',
+    ];
+    $form['export']['liabilities'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Download Liabilities CSV'),
+      '#submit' => ['::exportLiabilities'],
+    ];
+    $form['export']['assets'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Download Depreciable Assets CSV'),
+      '#submit' => ['::exportDepreciableAssets'],
+    ];
 
     $form['import'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Import'),
-      '#description' => $this->t("Upload a CSV previously exported by this module (round-trip / restore). Bank-statement and third-party formats are not supported."),
+      '#description' => $this->t("Upload a CSV previously exported by this module (round-trip / restore). The file type is detected automatically. For a full restore, import Liabilities and Transactions before Depreciable Assets so the links resolve. Bank-statement and third-party formats are not supported."),
     ];
     $form['import']['file'] = [
       '#type' => 'managed_file',
@@ -105,6 +118,20 @@ class ImportExportForm extends FormBase {
   }
 
   /**
+   * Export submit: redirect to the liabilities CSV download.
+   */
+  public function exportLiabilities(array &$form, FormStateInterface $form_state): void {
+    $form_state->setRedirect('farm_financial_mgmt.export.liabilities_csv');
+  }
+
+  /**
+   * Export submit: redirect to the depreciable-assets CSV download.
+   */
+  public function exportDepreciableAssets(array &$form, FormStateInterface $form_state): void {
+    $form_state->setRedirect('farm_financial_mgmt.export.depreciable_assets_csv');
+  }
+
+  /**
    * Shared export redirect carrying the year filter.
    */
   protected function redirectExport(FormStateInterface $form_state, string $route): void {
@@ -130,12 +157,20 @@ class ImportExportForm extends FormBase {
     $contents = file_get_contents($file->getFileUri());
     $stats = $this->csvImporter->import($contents, (bool) $form_state->getValue('create_categories'));
 
-    $this->messenger()->addStatus($this->t('Imported @t transactions and @l lines (@c categories, @p contacts created).', [
-      '@t' => $stats['transactions'],
-      '@l' => $stats['lines'],
-      '@c' => $stats['categories_created'],
-      '@p' => $stats['contacts_created'],
-    ]));
+    if (isset($stats['liabilities'])) {
+      $this->messenger()->addStatus($this->t('Imported @n liabilities.', ['@n' => $stats['liabilities']]));
+    }
+    elseif (isset($stats['depreciable_assets'])) {
+      $this->messenger()->addStatus($this->t('Imported @n depreciable assets.', ['@n' => $stats['depreciable_assets']]));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Imported @t transactions and @l lines (@c categories, @p contacts created).', [
+        '@t' => $stats['transactions'],
+        '@l' => $stats['lines'],
+        '@c' => $stats['categories_created'],
+        '@p' => $stats['contacts_created'],
+      ]));
+    }
     foreach (array_slice($stats['warnings'], 0, 20) as $warning) {
       $this->messenger()->addWarning($warning);
     }

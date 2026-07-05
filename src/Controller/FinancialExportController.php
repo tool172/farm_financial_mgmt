@@ -51,6 +51,20 @@ class FinancialExportController extends ControllerBase {
   }
 
   /**
+   * Liabilities own-format CSV download (Phase 5.9 backup).
+   */
+  public function liabilitiesCsv(): Response {
+    return $this->download($this->csvExporter->toLiabilityCsv(), 'financial-liabilities');
+  }
+
+  /**
+   * Depreciable-assets own-format CSV download (Phase 5.9 backup).
+   */
+  public function depreciableAssetsCsv(): Response {
+    return $this->download($this->csvExporter->toDepreciableAssetCsv(), 'financial-depreciable-assets');
+  }
+
+  /**
    * Wraps a CSV string in a download response.
    */
   protected function download(string $csv, string $basename): Response {

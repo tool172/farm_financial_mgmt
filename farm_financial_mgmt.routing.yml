@@ -118,6 +118,22 @@ farm_financial_mgmt.export.quickbooks_csv:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.export.liabilities_csv:
+  path: '/financial/export/liabilities-csv'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialExportController::liabilitiesCsv'
+    _title: 'Export Liabilities CSV'
+  requirements:
+    _permission: 'view financial reports'
+
+farm_financial_mgmt.export.depreciable_assets_csv:
+  path: '/financial/export/depreciable-assets-csv'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialExportController::depreciableAssetsCsv'
+    _title: 'Export Depreciable Assets CSV'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:
