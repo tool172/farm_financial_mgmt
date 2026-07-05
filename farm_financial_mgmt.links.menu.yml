@@ -1,13 +1,23 @@
-# Top-level "Financial" toolbar item (farm_cattle_prices pattern: menu_name
-# admin, parent farm.base), landing on the dashboard, with Transactions and
-# Settings children.
+# Top-level "Financial" toolbar item. Uses the farm_ranch_ui species-dashboard
+# pattern (parent farm.base, route_name <nolink>) rather than a clickable route,
+# so the toolbar flyout is pure disclosure and stays open on hover — a real-link
+# top carries navigation intent and drops the flyout. The dashboard is reached
+# via the "Dashboard" child below, exactly like the Cattle dashboard menu.
 farm_financial_mgmt.financial:
   title: 'Financial'
   description: 'Ranch income and expense tracking.'
-  route_name: farm_financial_mgmt.dashboard
+  route_name: '<nolink>'
   menu_name: admin
   parent: farm.base
   weight: 60
+
+farm_financial_mgmt.dashboard:
+  title: 'Dashboard'
+  description: 'Financial overview.'
+  route_name: farm_financial_mgmt.dashboard
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: -5
 
 farm_financial_mgmt.transactions:
   title: 'Transactions'
