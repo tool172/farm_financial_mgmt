@@ -11,6 +11,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\farm_financial_mgmt\Service\BalanceSheetBuilder;
 use Drupal\farm_financial_mgmt\Service\DepreciationEngine;
+use Drupal\farm_financial_mgmt\Service\EnterpriseCostAllocator;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
 use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -29,6 +30,7 @@ class FinancialReportController extends ControllerBase {
     protected TaxSummaryBuilder $taxSummaryBuilder,
     protected DepreciationEngine $depreciationEngine,
     protected BalanceSheetBuilder $balanceSheetBuilder,
+    protected EnterpriseCostAllocator $enterpriseCostAllocator,
   ) {}
 
   /**
@@ -42,6 +44,7 @@ class FinancialReportController extends ControllerBase {
       $container->get('farm_financial_mgmt.tax_summary_builder'),
       $container->get('farm_financial_mgmt.depreciation_engine'),
       $container->get('farm_financial_mgmt.balance_sheet_builder'),
+      $container->get('farm_financial_mgmt.enterprise_cost_allocator'),
     );
   }
 
@@ -253,6 +256,92 @@ class FinancialReportController extends ControllerBase {
       default => (string) $method,
     };
     return $class_label . ' · ' . $method_label;
+  }
+
+  /**
+   * Enterprise (per-species) profit & loss (Phase 5.7).
+   *
+   * Revenue − direct (AUE) − overhead (revenue-share, with an AUE/even fallback)
+   * per species. Overhead includes depreciation (the recognized cost) but not
+   * the capital outlay. States the overhead basis and the partition check.
+   */
+  public function enterpriseProfitLoss(): array {
+    $filters = $this->filters();
+    $year = (int) $filters['year'];
+    $currency = $this->currency();
+    $data = $this->enterpriseCostAllocator->build($year);
+    $money = fn($n) => $currency . ' ' . number_format((float) $n, 2);
+
+    $rows = [];
+    $t_rev = $t_dir = $t_ovh = $t_net = 0.0;
+    foreach ($data['enterprises'] as $e) {
+      $rows[] = ['cells' => [
+        ['value' => $e['label']],
+        ['value' => $money($e['revenue']), 'num' => TRUE],
+        ['value' => $money($e['direct']), 'num' => TRUE],
+        ['value' => $money($e['overhead']), 'num' => TRUE],
+        ['value' => $money($e['net']), 'num' => TRUE],
+      ]];
+      $t_rev += $e['revenue'];
+      $t_dir += $e['direct'];
+      $t_ovh += $e['overhead'];
+      $t_net += $e['net'];
+    }
+    $rows[] = ['total' => TRUE, 'cells' => [
+      ['value' => $this->t('Total')],
+      ['value' => $money($t_rev), 'num' => TRUE],
+      ['value' => $money($t_dir), 'num' => TRUE],
+      ['value' => $money($t_ovh), 'num' => TRUE],
+      ['value' => $money($t_net), 'num' => TRUE],
+    ]];
+    $pl_grid = [
+      'heading' => $this->t('Enterprise P&L'),
+      'headers' => [
+        ['label' => $this->t('Enterprise')],
+        ['label' => $this->t('Revenue'), 'num' => TRUE],
+        ['label' => $this->t('Direct (AUE)'), 'num' => TRUE],
+        ['label' => $this->t('Overhead'), 'num' => TRUE],
+        ['label' => $this->t('Net'), 'num' => TRUE],
+      ],
+      'rows' => $rows,
+    ];
+
+    // Pool breakdown — makes the partition and the depreciation source legible.
+    $pool_grid = [
+      'heading' => $this->t('Cost pools (partition of operating expense)'),
+      'headers' => [['label' => $this->t('Pool')], ['label' => $this->t('Amount'), 'num' => TRUE]],
+      'rows' => [
+        ['cells' => [['value' => $this->t('Direct pool (allocatable)')], ['value' => $money($data['direct_pool']), 'num' => TRUE]]],
+        ['cells' => [['value' => $this->t('Overhead expense (non-allocatable, non-capital)')], ['value' => $money($data['overhead_expense']), 'num' => TRUE]]],
+        ['cells' => [['value' => $this->t('+ Depreciation (recognized cost, not the outlay)')], ['value' => $money($data['depreciation']), 'num' => TRUE]]],
+        ['total' => TRUE, 'cells' => [['value' => $this->t('Overhead pool')], ['value' => $money($data['overhead_pool']), 'num' => TRUE]]],
+        ['cells' => [['value' => $this->t('Total operating expense (direct + overhead expense)')], ['value' => $money($data['total_operating_expense']), 'num' => TRUE]]],
+        ['cells' => [['value' => $this->t('Partition check (operating − direct − overhead-expense, must be 0)')], ['value' => $money($data['partition_gap']), 'num' => TRUE]]],
+      ],
+    ];
+
+    $summary = [
+      ['kind' => 'income', 'label' => $this->t('Revenue'), 'value' => number_format($t_rev, 2)],
+      ['kind' => 'expense', 'label' => $this->t('Direct + overhead'), 'value' => number_format($t_dir + $t_ovh, 2)],
+      ['kind' => 'net', 'label' => $this->t('Net'), 'value' => number_format($t_net, 2)],
+    ];
+
+    $basis_label = match ($data['basis']) {
+      'revenue' => $this->t('gross-revenue share'),
+      'aue' => $this->t('AUE share (revenue-share undefined — an enterprise has no revenue this period)'),
+      default => $this->t('even split (no revenue and no AUE this period)'),
+    };
+    $disclosures = [
+      $this->t('Overhead allocated by: @basis.', ['@basis' => $basis_label]),
+      $this->t('Overhead includes depreciation (the recognized annual cost); capital purchases are excluded — their cost enters here as depreciation, not as the outlay.'),
+      $this->t('Direct and overhead are the two halves of one partition (the allocatable flag); every operating-expense dollar lands in exactly one.'),
+    ];
+
+    if (!$data['partition_ok']) {
+      $this->messenger()->addError($this->t('Cost partition does not close (gap @g): a category may be missing from both pools or present in both.', ['@g' => $money($data['partition_gap'])]));
+    }
+
+    return $this->reportRender($this->t('Enterprise P&L — @year', ['@year' => $year]), $filters, $summary, NULL, NULL, [], [$pl_grid, $pool_grid], $disclosures);
   }
 
   /**

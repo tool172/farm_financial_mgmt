@@ -60,6 +60,12 @@ services:
     alias: Drupal\farm_financial_mgmt\Service\BalanceSheetBuilder
     public: true
 
+  Drupal\farm_financial_mgmt\Service\EnterpriseCostAllocator:
+    autowire: true
+  farm_financial_mgmt.enterprise_cost_allocator:
+    alias: Drupal\farm_financial_mgmt\Service\EnterpriseCostAllocator
+    public: true
+
   Drupal\farm_financial_mgmt\Service\Export\CsvExporter:
     autowire: true
   farm_financial_mgmt.csv_exporter:

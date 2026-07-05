@@ -171,6 +171,85 @@ class ReportBuilder {
   }
 
   /**
+   * Income tagged to one or more enterprises (species) — revenue for the P&L.
+   */
+  public function enterpriseRevenue(array $filters, array $enterprise_tids): float {
+    if (empty($enterprise_tids)) {
+      return 0.0;
+    }
+    $filters['direction'] = 'income';
+    $result = $this->aggregateQuery($filters)
+      ->condition('enterprise', $enterprise_tids, 'IN')
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
+   * Allocatable expense attributed to a set of assets (direct, asset-tagged).
+   */
+  public function attributableAllocatable(array $filters, array $asset_ids): float {
+    if (empty($asset_ids)) {
+      return 0.0;
+    }
+    $filters['direction'] = 'expense';
+    unset($filters['asset']);
+    $result = $this->aggregateQuery($filters)
+      ->condition('asset', $asset_ids, 'IN')
+      ->condition('category.entity.allocatable', 1)
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
+   * Total allocatable (direct-pool) expense for the period.
+   *
+   * One side of the direct/overhead partition: category allocatable = TRUE.
+   */
+  public function totalAllocatable(array $filters): float {
+    $filters['direction'] = 'expense';
+    $result = $this->aggregateQuery($filters)
+      ->condition('category.entity.allocatable', 1)
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
+   * Overhead expense: non-allocatable and non-capital.
+   *
+   * The other side of the partition: allocatable = FALSE, excluding capital
+   * outlays (which are represented by depreciation, not operating expense).
+   * Principal is already excluded by applyFilters().
+   */
+  public function overheadExpense(array $filters): float {
+    $filters['direction'] = 'expense';
+    $result = $this->aggregateQuery($filters)
+      ->condition('category.entity.allocatable', 0)
+      ->condition('category.entity.capital', 1, '<>')
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
+   * All operating expense (excludes capital outlays; principal already gone).
+   *
+   * The universe the allocatable flag partitions into direct and overhead —
+   * exposed so the allocator can assert direct + overhead == this, making
+   * completeness and non-overlap structural rather than an afterthought.
+   */
+  public function totalOperatingExpense(array $filters): float {
+    $filters['direction'] = 'expense';
+    $result = $this->aggregateQuery($filters)
+      ->condition('category.entity.capital', 1, '<>')
+      ->aggregate('amount', 'SUM')
+      ->execute();
+    return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
    * Total principal paid against a liability — SUM(principal_portion) of its lines.
    */
   public function principalPaid(int $liability_id): float {

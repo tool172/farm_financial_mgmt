@@ -91,12 +91,19 @@ farm_financial_mgmt.report.depreciation:
   parent: farm_financial_mgmt.reports
   weight: 7
 
+farm_financial_mgmt.report.enterprise_pl:
+  title: 'Enterprise P&L'
+  route_name: farm_financial_mgmt.report.enterprise_pl
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 8
+
 farm_financial_mgmt.report.balance_sheet:
   title: 'Balance Sheet (Net Worth)'
   route_name: farm_financial_mgmt.report.balance_sheet
   menu_name: admin
   parent: farm_financial_mgmt.reports
-  weight: 8
+  weight: 9
 
 farm_financial_mgmt.depreciable_assets:
   title: 'Depreciable Assets'
