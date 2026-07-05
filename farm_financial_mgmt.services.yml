@@ -41,6 +41,19 @@ services:
     alias: Drupal\farm_financial_mgmt\Service\DepreciationEngine
     public: true
 
+  # Asset valuation — dual basis/market. Default active provider is the livestock
+  # one (it decorates the book provider and handles non-livestock via fallback).
+  # Swap the interface alias to BookValueProvider to disable market pricing.
+  Drupal\farm_financial_mgmt\Service\Valuation\BookValueProvider:
+    autowire: true
+  Drupal\farm_financial_mgmt\Service\Valuation\LivestockMarketValueProvider:
+    autowire: true
+  Drupal\farm_financial_mgmt\Service\Valuation\AssetValuationProviderInterface:
+    alias: Drupal\farm_financial_mgmt\Service\Valuation\LivestockMarketValueProvider
+  farm_financial_mgmt.asset_valuation:
+    alias: Drupal\farm_financial_mgmt\Service\Valuation\AssetValuationProviderInterface
+    public: true
+
   Drupal\farm_financial_mgmt\Service\Export\CsvExporter:
     autowire: true
   farm_financial_mgmt.csv_exporter:
