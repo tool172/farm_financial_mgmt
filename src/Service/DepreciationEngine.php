@@ -315,6 +315,38 @@ class DepreciationEngine {
   }
 
   /**
+   * The depreciable-asset entities OWNED as of a year-end — the single source.
+   *
+   * "Assets I currently own" for point-in-time reports (the balance sheet):
+   * every depreciable_asset except those disposed on or before the as-of year.
+   * An animal sold in 2027 is still owned on the 2026 sheet (she was owned then)
+   * but absent from 2027 onward. Centralized here so every consumer inherits the
+   * disposition filter, rather than each report re-deriving "owned" and leaving
+   * the same phantom in some of them. NULL through-year = currently owned (no
+   * disposal). Includes non-depreciable-property entities (raised stock, land),
+   * which belong on the balance sheet at their basis/market.
+   *
+   * @return \Drupal\farm_financial_mgmt\Entity\DepreciableAssetInterface[]
+   */
+  public function ownedAssets(?int $through_year = NULL, ?array $enterprise_tids = NULL): array {
+    $storage = $this->entityTypeManager->getStorage('depreciable_asset');
+    $query = $storage->getQuery()->accessCheck(FALSE);
+    if ($enterprise_tids !== NULL) {
+      $query->condition('enterprise', $enterprise_tids, 'IN');
+    }
+    if ($through_year === NULL) {
+      $query->notExists('disposed_date');
+    }
+    else {
+      $owned = $query->orConditionGroup()
+        ->notExists('disposed_date')
+        ->condition('disposed_date', $through_year . '-12-31', '>');
+      $query->condition($owned);
+    }
+    return $storage->loadMultiple($query->execute());
+  }
+
+  /**
    * Loads depreciable-property assets, optionally scoped to enterprises.
    *
    * @return \Drupal\farm_financial_mgmt\Entity\DepreciableAssetInterface[]

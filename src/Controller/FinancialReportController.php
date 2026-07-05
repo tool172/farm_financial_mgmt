@@ -148,6 +148,13 @@ class FinancialReportController extends ControllerBase {
     $book_total = 0.0;
     $deprec_count = 0;
     foreach ($assets as $asset) {
+      // Skip assets disposed before this year — they took no depreciation in it
+      // and are off the books (aligns with totalForYear and the balance sheet).
+      // An asset disposed during the year stays, with its disposal-year figure.
+      if (!$asset->get('disposed_date')->isEmpty()
+        && (int) substr((string) $asset->get('disposed_date')->value, 0, 4) < $year) {
+        continue;
+      }
       $basis = (float) $asset->get('basis')->value;
       $class = $asset->get('macrs_class')->value;
       $method = $asset->get('depreciation_method')->value;
@@ -573,23 +580,32 @@ class FinancialReportController extends ControllerBase {
   }
 
   /**
-   * Profit & Loss: income, expense, net; by category; period range.
+   * Profit & Loss — a true income statement (revised for the capital layer).
+   *
+   * Revenue − operating expense − depreciation = net. Capital purchases are
+   * capitalized, NOT expensed (their cost is recognized over time as
+   * depreciation), matching the Tax Summary and Enterprise P&L — so all three
+   * profit views treat capital the same way. Loan principal is likewise excluded
+   * (a balance-sheet movement). Depreciation is the same engine total the Tax
+   * Summary line 14 and the schedule report use — one source, whole-operation.
    */
   public function profitAndLoss(): array {
     $filters = $this->filters();
+    $year = (int) $filters['year'];
     $currency = $this->currency();
-    $totals = $this->reportBuilder->directionTotals($filters);
+
+    $income = $this->reportBuilder->directionTotals($filters)['income'];
+    $operating = $this->reportBuilder->totalOperatingExpense($filters);
+    $depreciation = $this->depreciationEngine->totalForYear($year);
+    $expense = round($operating + $depreciation, 2);
+    $net = round($income - $expense, 2);
 
     $chart = [
       'type' => 'bar',
       'data' => [
         'labels' => ['Income', 'Expense', 'Net'],
         'datasets' => [[
-          'data' => [
-            round($totals['income'], 2),
-            round($totals['expense'], 2),
-            round($totals['net'], 2),
-          ],
+          'data' => [round($income, 2), $expense, $net],
           'backgroundColor' => ['#2f7d32', '#a12d2d', '#1e5a8a'],
         ]],
       ],
@@ -601,19 +617,28 @@ class FinancialReportController extends ControllerBase {
       ],
     ];
 
+    // Expense breakdown: operating categories (capital excluded) + depreciation.
+    $expense_section = $this->categorySection($this->t('Operating expense by category'), 'expense', $filters, $currency, TRUE);
+    $expense_section['rows'][] = ['label' => $this->t('Depreciation (capital recognized over its life)'), 'amount' => number_format($depreciation, 2)];
+    $expense_section['total'] = number_format($expense, 2);
+
     return $this->reportRender(
       $this->t('Profit & Loss'),
       $filters,
       [
-        ['kind' => 'income', 'label' => $this->t('Income'), 'value' => number_format($totals['income'], 2)],
-        ['kind' => 'expense', 'label' => $this->t('Expense'), 'value' => number_format($totals['expense'], 2)],
-        ['kind' => 'net', 'label' => $this->t('Net'), 'value' => number_format($totals['net'], 2)],
+        ['kind' => 'income', 'label' => $this->t('Income'), 'value' => number_format($income, 2)],
+        ['kind' => 'expense', 'label' => $this->t('Operating + depreciation'), 'value' => number_format($expense, 2)],
+        ['kind' => 'net', 'label' => $this->t('Net'), 'value' => number_format($net, 2)],
       ],
       'ffm-pl-chart',
       $chart,
       [
         $this->categorySection($this->t('Income by category'), 'income', $filters, $currency),
-        $this->categorySection($this->t('Expense by category'), 'expense', $filters, $currency),
+        $expense_section,
+      ],
+      [],
+      [
+        $this->t('A true income statement: capital purchases are capitalized (not expensed) and recognized over their life as depreciation — the same treatment as the Tax Summary and Enterprise P&L. Loan principal is excluded as a balance-sheet movement.'),
       ],
     );
   }
@@ -621,10 +646,20 @@ class FinancialReportController extends ControllerBase {
   /**
    * Builds a category breakdown section for a direction (children rolled up).
    */
-  protected function categorySection($heading, string $direction, array $filters, string $currency): array {
+  protected function categorySection($heading, string $direction, array $filters, string $currency, bool $exclude_capital = FALSE): array {
     $totals = $this->reportBuilder->categoryTotals($filters + ['direction' => $direction]);
     arsort($totals);
     $terms = $this->entityTypeManager()->getStorage('taxonomy_term')->loadMultiple(array_keys($totals));
+    // Capital purchases are capitalized, not operating expense — drop them from
+    // the income-statement breakdown (their cost appears as depreciation).
+    if ($exclude_capital) {
+      foreach ($totals as $tid => $amount) {
+        $term = $terms[$tid] ?? NULL;
+        if ($term && $term->hasField('capital') && (bool) $term->get('capital')->value) {
+          unset($totals[$tid]);
+        }
+      }
+    }
     $rows = [];
     $sum = 0.0;
     foreach ($totals as $tid => $amount) {

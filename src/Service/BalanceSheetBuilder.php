@@ -34,6 +34,7 @@ class BalanceSheetBuilder {
     protected AssetValuationProviderInterface $valuation,
     protected ReportBuilder $reportBuilder,
     protected ConfigFactoryInterface $configFactory,
+    protected DepreciationEngine $depreciationEngine,
   ) {}
 
   /**
@@ -45,8 +46,10 @@ class BalanceSheetBuilder {
     $assets_basis = 0.0;
     $assets_market = 0.0;
     $market_dates = [];
-    $storage = $this->entityTypeManager->getStorage('depreciable_asset');
-    $assets = $storage->loadMultiple();
+    // Assets OWNED as of the balance-sheet year — a disposed animal is off the
+    // sheet (her value became the sale proceeds), so she is not double-counted.
+    // The disposition filter is the engine's single "owned as-of" source.
+    $assets = $this->depreciationEngine->ownedAssets($through_year);
     // Stable order by in-service date then label.
     uasort($assets, static fn($a, $b) => [$a->get('in_service_date')->value, $a->label()] <=> [$b->get('in_service_date')->value, $b->label()]);
     foreach ($assets as $asset) {
