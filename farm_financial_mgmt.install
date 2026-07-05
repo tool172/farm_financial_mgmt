@@ -23,6 +23,8 @@ function farm_financial_mgmt_install(): void {
   // Phase 5: MACRS class/method fields ship via config/install; seed their
   // defaults onto the capital categories.
   _farm_financial_mgmt_populate_macrs_defaults();
+  // Phase 5.4: expose the liability/principal_portion fields on the line form.
+  _farm_financial_mgmt_add_liability_form_fields();
 }
 
 /**
@@ -124,6 +126,10 @@ function _farm_financial_mgmt_seed_categories(): void {
     'Purchase of Breeding Stock' => FALSE,
     'Equipment / Machinery Purchase' => FALSE,
     'Land Improvement' => FALSE,
+    // Loan principal repayment — a balance-sheet movement, not an operating
+    // expense. Excluded from P&L/tax by construction (principal_portion on the
+    // line; see ReportBuilder::applyFilters()). Draws down its liability.
+    'Loan Principal Payment' => FALSE,
   ];
   $weight = 0;
   foreach ($expense_children as $name => $allocatable) {
@@ -255,6 +261,9 @@ function _farm_financial_mgmt_tax_map(): array {
     'Purchase of Breeding Stock' => ['', 'none', TRUE, FALSE],
     'Equipment / Machinery Purchase' => ['', 'none', TRUE, FALSE],
     'Land Improvement' => ['', 'none', TRUE, FALSE],
+    // Loan principal repayment — not a deduction, not capital; a balance-sheet
+    // movement excluded from the Schedule F rollup by construction.
+    'Loan Principal Payment' => ['', 'none', FALSE, FALSE],
   ];
 }
 
@@ -314,6 +323,52 @@ function farm_financial_mgmt_update_10502(): void {
       $config->setData($data)->save();
     }
   }
+}
+
+/**
+ * Phase 5.4: financial_liability entity + loan interest/principal split.
+ *
+ * In place: installs the financial_liability content entity, the financial_line
+ * liability/principal_portion fields, the Loan Principal Payment category (with
+ * its non-deductible tax mapping), and exposes the two fields on the line form.
+ */
+function farm_financial_mgmt_update_10503(): void {
+  $etm = \Drupal::entityTypeManager();
+  $etm->clearCachedDefinitions();
+  $manager = \Drupal::entityDefinitionUpdateManager();
+
+  if ($manager->getEntityType('financial_liability') === NULL) {
+    $manager->installEntityType($etm->getDefinition('financial_liability'));
+  }
+
+  $definitions = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions('financial_line');
+  foreach (['liability', 'principal_portion'] as $field_name) {
+    if ($manager->getFieldStorageDefinition($field_name, 'financial_line') === NULL) {
+      $manager->installFieldStorageDefinition($field_name, 'financial_line', 'farm_financial_mgmt', $definitions[$field_name]);
+    }
+  }
+
+  // Seed the principal category + its (non-deductible) tax mapping.
+  _farm_financial_mgmt_seed_categories();
+  _farm_financial_mgmt_populate_tax_fields();
+
+  // Expose the two new fields on the line form (IEF sub-form).
+  _farm_financial_mgmt_add_liability_form_fields();
+}
+
+/**
+ * Adds liability + principal_portion to the financial_line default form display.
+ */
+function _farm_financial_mgmt_add_liability_form_fields(): void {
+  $display = \Drupal::service('entity_display.repository')
+    ->getFormDisplay('financial_line', 'financial_line', 'default');
+  if (!$display->getComponent('liability')) {
+    $display->setComponent('liability', ['type' => 'entity_reference_autocomplete', 'weight' => 8]);
+  }
+  if (!$display->getComponent('principal_portion')) {
+    $display->setComponent('principal_portion', ['type' => 'number', 'weight' => 9]);
+  }
+  $display->save();
 }
 
 /**

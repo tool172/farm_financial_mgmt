@@ -181,6 +181,29 @@ class FinancialLine extends RevisionableContentEntityBase implements FinancialLi
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+    // Phase 5.4: loan-payment interest/principal split. The principal line
+    // references its liability and carries principal_portion; a line with
+    // principal_portion > 0 is a financing movement (balance-sheet, not P&L) and
+    // is excluded from operating rollups by construction in
+    // ReportBuilder::applyFilters(). Interest is a separate normal expense line.
+    $fields['liability'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Liability'))
+      ->setDescription(new TranslatableMarkup('The loan this line pays toward. Set on both the interest and principal lines of a loan payment.'))
+      ->setSetting('target_type', 'financial_liability')
+      ->setSetting('handler', 'default')
+      ->setRevisionable(TRUE)
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['principal_portion'] = BaseFieldDefinition::create('decimal')
+      ->setLabel(new TranslatableMarkup('Principal portion'))
+      ->setDescription(new TranslatableMarkup('The principal repayment amount (from the lender statement). Draws down the liability balance; excluded from P&L and Schedule F. Interest is a separate expense line.'))
+      ->setSetting('precision', 14)
+      ->setSetting('scale', 2)
+      ->setRevisionable(TRUE)
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
     // Denormalized from the parent transaction (write-through on txn postsave).
     // Load-bearing reporting optimization (SPEC §3.2): lets P&L / by-category /
     // per-record reports query the single financial_line table with no join.

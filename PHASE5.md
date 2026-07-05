@@ -168,16 +168,32 @@ Derived: `depreciable` = `basis_type != raised && basis > 0 && macrs_class != no
 ### 3.2 `financial_liability`
 
 `lender` (→ contact), `liability_type` (`operating_note`/`term_loan`/`mortgage`/`ccc_loan`/`other`),
-`original_principal`, `interest_rate`, `origination_date`, `term_months`, `current_balance`
-(computed+stored), `enterprise` (optional), notes/owner/revision. Manually maintained; balance
-reduced by principal-payment tracking (§3.3).
+`original_principal`, `interest_rate`, `origination_date`, `term_months`, `enterprise` (optional),
+notes/owner/revision.
+
+**Current balance is DERIVED, never stored (ratified).** There is *no* `current_balance` field.
+The balance is one computed value — `original_principal − SUM(principal_portion)` across the
+liability's payment lines — read on demand (`ReportBuilder::liabilityBalance()`), so it can never
+drift from the payment history. Edit or delete a past payment and the balance recomputes from the
+lines; nothing maintains a separate running counter. Same single-source discipline as accumulated
+depreciation.
 
 ### 3.3 Line additions (installed via update hook)
 
 - `financial_line.liability` (→ `financial_liability`) + `financial_line.principal_portion`
-  (decimal): a loan payment splits **interest** (an `Interest – …` category → Schedule F) from
-  **principal** (reduces `current_balance`, **not** a deduction). Principal-portion is excluded
-  from P&L/tax rollups (like the 1b basis lines). A postsave rolls principal into the liability.
+  (decimal). **The split is operator-entered, not computed** (5.4): a borrower knows the payment
+  from their statement, and the lender supplies the interest/principal breakdown, which changes
+  every payment and handles irregular/extra/variable-rate cases a computed amortization schedule
+  would get wrong. A loan payment is entered as an expense transaction with two lines — **interest**
+  (an `Interest – …` category → Schedule F line 21, hits P&L) and **principal** (the seeded
+  *Loan Principal Payment* category, `liability` set, `principal_portion` = the amount). The
+  transaction total reconciles to the actual payment. Auto-amortization is a possible additive
+  convenience later, not now.
+- **Principal is excluded from P&L/tax by construction, not by report-time filtering.** A line with
+  `principal_portion > 0` is a financing movement; `ReportBuilder::applyFilters()` — the single gate
+  every operating rollup (P&L, by-category, tax, allocatable pool) passes through — excludes it, so
+  no present or future report can sweep it back into expenses. Same failure-mode class as the 1b
+  cost-basis exclusion: a line that is money-out but not a deductible expense.
 
 ### 3.4 Reused hooks (in place)
 

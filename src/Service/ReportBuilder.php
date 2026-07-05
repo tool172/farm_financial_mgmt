@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\farm_financial_mgmt\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\farm_financial_mgmt\Entity\FinancialLiabilityInterface;
 
 /**
  * Report aggregations over the single financial_line table.
@@ -58,6 +59,15 @@ class ReportBuilder {
     if (!empty($filters['payment_status'])) {
       $query->condition('transaction.entity.payment_status', $filters['payment_status']);
     }
+    // Financing principal (loan principal repayment) is a balance-sheet movement,
+    // NOT an operating expense — exclude it from every operating rollup here, the
+    // one gate all reports pass through, so no present or future report can sweep
+    // it back into P&L or Schedule F. A line with principal_portion > 0 is a
+    // principal line; interest is a separate normal expense line. (PHASE5 §3.3.)
+    $not_principal = $query->orConditionGroup()
+      ->notExists('principal_portion')
+      ->condition('principal_portion', 0);
+    $query->condition($not_principal);
   }
 
   /**
@@ -158,6 +168,31 @@ class ReportBuilder {
     }
     $result = $query->aggregate('amount', 'SUM')->execute();
     return (float) ($result[0]['amount_sum'] ?? 0);
+  }
+
+  /**
+   * Total principal paid against a liability — SUM(principal_portion) of its lines.
+   */
+  public function principalPaid(int $liability_id): float {
+    $result = $this->entityTypeManager->getStorage('financial_line')->getAggregateQuery()
+      ->accessCheck(FALSE)
+      ->condition('liability', $liability_id)
+      ->aggregate('principal_portion', 'SUM')
+      ->execute();
+    return (float) ($result[0]['principal_portion_sum'] ?? 0);
+  }
+
+  /**
+   * The derived current balance of a liability.
+   *
+   * One computed value — original principal less all principal paid — read on
+   * demand so it can never drift from the payment history (no stored counter).
+   * Edit or delete a payment line and this recomputes. The balance sheet (5.6)
+   * reads this. (PHASE5 §3.2.)
+   */
+  public function liabilityBalance(FinancialLiabilityInterface $liability): float {
+    $original = (float) $liability->get('original_principal')->value;
+    return round($original - $this->principalPaid((int) $liability->id()), 2);
   }
 
   /**
