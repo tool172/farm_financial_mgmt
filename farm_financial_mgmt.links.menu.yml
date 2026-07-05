@@ -98,12 +98,19 @@ farm_financial_mgmt.report.enterprise_pl:
   parent: farm_financial_mgmt.reports
   weight: 8
 
+farm_financial_mgmt.report.form_4797:
+  title: 'Form 4797 (Dispositions)'
+  route_name: farm_financial_mgmt.report.form_4797
+  menu_name: admin
+  parent: farm_financial_mgmt.reports
+  weight: 9
+
 farm_financial_mgmt.report.balance_sheet:
   title: 'Balance Sheet (Net Worth)'
   route_name: farm_financial_mgmt.report.balance_sheet
   menu_name: admin
   parent: farm_financial_mgmt.reports
-  weight: 9
+  weight: 10
 
 farm_financial_mgmt.depreciable_assets:
   title: 'Depreciable Assets'

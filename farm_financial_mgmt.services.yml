@@ -66,6 +66,12 @@ services:
     alias: Drupal\farm_financial_mgmt\Service\EnterpriseCostAllocator
     public: true
 
+  Drupal\farm_financial_mgmt\Service\Form4797Builder:
+    autowire: true
+  farm_financial_mgmt.form_4797_builder:
+    alias: Drupal\farm_financial_mgmt\Service\Form4797Builder
+    public: true
+
   Drupal\farm_financial_mgmt\Service\Export\CsvExporter:
     autowire: true
   farm_financial_mgmt.csv_exporter:

@@ -86,6 +86,14 @@ farm_financial_mgmt.report.depreciation:
   requirements:
     _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::taxAccess'
 
+farm_financial_mgmt.report.form_4797:
+  path: '/financial/reports/form-4797'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::form4797'
+    _title: 'Form 4797 (Dispositions)'
+  requirements:
+    _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::taxAccess'
+
 farm_financial_mgmt.import_export:
   path: '/financial/import-export'
   defaults:

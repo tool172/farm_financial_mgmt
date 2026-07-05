@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\farm_financial_mgmt\Service\BalanceSheetBuilder;
 use Drupal\farm_financial_mgmt\Service\DepreciationEngine;
 use Drupal\farm_financial_mgmt\Service\EnterpriseCostAllocator;
+use Drupal\farm_financial_mgmt\Service\Form4797Builder;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
 use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -31,6 +32,7 @@ class FinancialReportController extends ControllerBase {
     protected DepreciationEngine $depreciationEngine,
     protected BalanceSheetBuilder $balanceSheetBuilder,
     protected EnterpriseCostAllocator $enterpriseCostAllocator,
+    protected Form4797Builder $form4797Builder,
   ) {}
 
   /**
@@ -45,6 +47,7 @@ class FinancialReportController extends ControllerBase {
       $container->get('farm_financial_mgmt.depreciation_engine'),
       $container->get('farm_financial_mgmt.balance_sheet_builder'),
       $container->get('farm_financial_mgmt.enterprise_cost_allocator'),
+      $container->get('farm_financial_mgmt.form_4797_builder'),
     );
   }
 
@@ -256,6 +259,88 @@ class FinancialReportController extends ControllerBase {
       default => (string) $method,
     };
     return $class_label . ' · ' . $method_label;
+  }
+
+  /**
+   * Form 4797 — disposition gain/loss with §1245 recapture (Phase 5.8).
+   *
+   * Purchased/inherited stock recaptures depreciation (ordinary) up to the
+   * accumulated figure, the rest §1231; raised stock has no depreciation to
+   * recapture, so its whole gain is §1231. The accumulated figure is the same
+   * DepreciationEngine::accumulatedDepreciation() the balance sheet reads.
+   */
+  public function form4797(): array {
+    $filters = $this->filters();
+    $year = (int) $filters['year'];
+    $currency = $this->currency();
+    $data = $this->form4797Builder->build($year);
+    $money = fn($n) => $currency . ' ' . number_format((float) $n, 2);
+
+    $type_label = [
+      'purchased' => $this->t('purchased'),
+      'raised' => $this->t('raised'),
+      'acquired_other' => $this->t('gifted/inherited'),
+    ];
+
+    $rows = [];
+    foreach ($data['rows'] as $r) {
+      $s1231 = $r['section_1231_loss'] < 0
+        ? '(' . $money(-$r['section_1231_loss']) . ')'
+        : $money($r['section_1231_gain']);
+      $rows[] = ['cells' => [
+        ['value' => $r['label']],
+        ['value' => $type_label[$r['basis_type']] ?? $r['basis_type']],
+        ['value' => $money($r['proceeds']), 'num' => TRUE],
+        ['value' => $money($r['original_basis']), 'num' => TRUE],
+        ['value' => $money($r['accumulated_depreciation']), 'num' => TRUE],
+        ['value' => $money($r['adjusted_basis']), 'num' => TRUE],
+        ['value' => $money($r['gain']), 'num' => TRUE],
+        ['value' => $money($r['ordinary_recapture']), 'num' => TRUE],
+        ['value' => $s1231, 'num' => TRUE],
+      ]];
+    }
+    if ($rows) {
+      $rows[] = ['total' => TRUE, 'cells' => [
+        ['value' => $this->t('Total')],
+        ['value' => ''],
+        ['value' => ''],
+        ['value' => ''],
+        ['value' => ''],
+        ['value' => ''],
+        ['value' => ''],
+        ['value' => $money($data['ordinary_recapture_total']), 'num' => TRUE],
+        ['value' => $money($data['section_1231_gain_total'] + $data['section_1231_loss_total']), 'num' => TRUE],
+      ]];
+    }
+
+    $grid = [
+      'heading' => $this->t('Form 4797 — dispositions @year', ['@year' => $year]),
+      'headers' => [
+        ['label' => $this->t('Asset')],
+        ['label' => $this->t('Type')],
+        ['label' => $this->t('Proceeds'), 'num' => TRUE],
+        ['label' => $this->t('Original basis'), 'num' => TRUE],
+        ['label' => $this->t('Accum. depr.'), 'num' => TRUE],
+        ['label' => $this->t('Adjusted basis'), 'num' => TRUE],
+        ['label' => $this->t('Gain/(loss)'), 'num' => TRUE],
+        ['label' => $this->t('Ordinary recapture'), 'num' => TRUE],
+        ['label' => $this->t('§1231 gain/(loss)'), 'num' => TRUE],
+      ],
+      'rows' => $rows,
+    ];
+
+    $summary = [
+      ['kind' => 'expense', 'label' => $this->t('Ordinary recapture'), 'value' => number_format($data['ordinary_recapture_total'], 2)],
+      ['kind' => 'income', 'label' => $this->t('§1231 gain'), 'value' => number_format($data['section_1231_gain_total'], 2)],
+      ['kind' => 'net', 'label' => $this->t('§1231 loss'), 'value' => number_format($data['section_1231_loss_total'], 2)],
+    ];
+
+    $disclosures = [
+      $this->t('Ordinary recapture (§1245) is capped at accumulated depreciation; the rest of any gain is §1231. Raised stock has zero basis and zero depreciation, so its whole gain is §1231 — no recapture.'),
+      $this->t('Accumulated depreciation here is the same figure the balance sheet and the Depreciation Schedule (Form 4562) report — one engine, so total recaptured can never exceed depreciation taken.'),
+    ];
+
+    return $this->reportRender($this->t('Form 4797 (Dispositions) — @year', ['@year' => $year]), $filters, $summary, NULL, NULL, [], [$grid], $disclosures);
   }
 
   /**
