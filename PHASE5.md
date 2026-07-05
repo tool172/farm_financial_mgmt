@@ -47,15 +47,24 @@ category term" pattern that carries `schedule_f_line`/`tax_form`. New fields on 
 | Field | Type | Notes |
 |---|---|---|
 | `macrs_class` | list | `3yr`,`5yr`,`7yr`,`10yr`,`15yr`,`20yr`,`none` |
-| `depreciation_method` | list | `macrs_gds` (150% DB, farm default), `macrs_ads` (SL), `straight_line` |
+| `depreciation_method` | list | `macrs_gds_200`, `macrs_gds_150`, `macrs_ads` (SL), `straight_line` |
+
+> **Method split (pre-flight finding, ratified).** A single `macrs_gds` = "150% DB" is the
+> *pre-TCJA* rule and would under-depreciate post-2017 breeding stock and machinery for anyone who
+> elects 200% DB (the common case). GDS is therefore split: **200% DB** is allowed for farm
+> 3/5/7/10-yr property placed in service after 2017; **150% DB** is *mandatory* for 15- and 20-yr
+> property and *electable* on any GDS property (AMT / income-timing); ADS is straight-line.
+> 200% is **commonly elected but not mandatory** — so both `macrs_class` **and**
+> `depreciation_method` are overridable per asset (§3.1), and the override must reach the **method**,
+> not only the class: an operator can put one animal on 150% or ADS without reclassing it.
 
 **Seed defaults** (editable per operation):
-- **Purchase of Breeding Stock** → 5-yr, `macrs_gds`
-- **Equipment / Machinery Purchase** → 7-yr, `macrs_gds`
-- **Land Improvement** (fences, tile, etc.) → 15-yr, `macrs_gds`
-  *(note: some ag fencing is 7-yr — this is exactly why it lives on the category, editable, rather
-  than hard-coded; operators set the class their preparer uses.)*
-- Single-purpose ag **structures**, if a category is added → 10-yr.
+- **Purchase of Breeding Stock** → 5-yr, `macrs_gds_200`
+- **Equipment / Machinery Purchase** → 7-yr, `macrs_gds_200`
+- **Land Improvement** (fences, tile, etc.) → 15-yr, `macrs_gds_150` (150% mandatory for 15-yr)
+  *(note: some ag fencing is 7-yr — this is exactly why class lives on the category, editable,
+  rather than hard-coded; operators set the class their preparer uses.)*
+- Single-purpose ag **structures**, if a category is added → 10-yr, `macrs_gds_200`.
 - **Land** itself → `none` (never depreciable).
 
 A `depreciable_asset` **inherits** `macrs_class` + `depreciation_method` from its acquisition
@@ -88,13 +97,28 @@ basis** — her rearing costs were already expensed as feed/vet along the way. S
 cow-calf herd's breeding animals are **non-depreciable**, and the model treats `basis = 0,
 non-depreciable` as a **normal state, not an error**.
 
-- `depreciable_asset.basis_type` = `purchased` | `raised`. `raised` ⇒ basis 0, `depreciable = false`;
-  the engine skips it (no schedule, no line-14 contribution).
-- This reads the **same raised-vs-purchased signal the disposition side already knows** (it drives
-  1a/1b/1c cost-basis netting and the Form 4797 routing from Phase 3). Depreciation and disposition
-  must agree: a raised breeding animal has **no depreciation to recapture** on sale (its 4797 gain
-  is its full proceeds as §1231 gain, no recapture), whereas a purchased one recaptures prior
-  depreciation. 5.8 reads `basis_type` for both.
+- `depreciable_asset.basis_type` = `purchased` | `raised` | `acquired_other`. `raised` ⇒ basis 0,
+  `depreciable = false`; the engine skips it (no schedule, no line-14 contribution). `purchased`
+  and `acquired_other` carry basis and depreciate.
+- **`basis_type` is the single authoritative source (pre-flight finding, ratified).** The existing
+  disposition path is *category-driven, not per-animal*: 1a/1b/1c netting reads `schedule_f_line`
+  on the line's category, and the 4797 path routes by `tax_form` — and **resale livestock and
+  breeding stock are disjoint populations** (resale = non-capital feeders bought-and-flipped, Sch F
+  line 1; breeding = capital, depreciated), so no per-animal raised/purchased field ever existed to
+  reuse. `basis_type` is therefore net-new and becomes the one source of truth: 5.8's recapture and
+  the schedule both read it — plus `accumulatedDepreciation()` — off the **same `depreciable_asset`
+  entity**. One entity, one derivation, two readers: depreciation and 4797 cannot diverge.
+- **Recapture consequence:** a `raised` animal has **no depreciation to recapture** on sale (full
+  §1231 gain), a `purchased`/`acquired_other` one recaptures the depreciation actually taken.
+- **Derivation + the acquired-otherwise edge (5.1).** Default: created from a *Purchase of Breeding
+  Stock* line → `purchased`, basis = line total; created with no acquisition line → `raised`, basis
+  0. But an animal that enters the herd *neither* by purchase *nor* by on-farm raising — **gifted,
+  inherited, or transferred in** — is neither: inherited stock takes a **stepped-up** basis, gifted
+  a **carryover** basis. Letting those fall silently to `raised`/0 would understate basis and
+  overstate later gain. So `basis_type` **and** `basis` are **operator-overridable at asset
+  creation** (same override shape as class/method): default from presence/absence of a purchase
+  line, but the operator can set `acquired_other` and enter the correct basis. The zero-basis
+  default never becomes a wrong answer for the uncommon-but-real inbound paths.
 
 ### 2.4 Balance sheet scope — entered cash + entered liabilities, honestly
 
@@ -122,10 +146,10 @@ revisionable.
 | Field | Type | Notes |
 |---|---|---|
 | `label` | string | Auto from farm asset / acquisition. |
-| `basis_type` | list | `purchased` \| `raised` (§2.3). `raised` ⇒ non-depreciable. |
+| `basis_type` | list | `purchased` \| `raised` \| `acquired_other` (§2.3). `raised` ⇒ non-depreciable. Operator-overridable. |
 | `farm_asset` | entity_ref → `asset` (equipment/land/structure/animal) | Optional physical link. |
-| `acquisition` | entity_ref → `financial_transaction` | Basis source (purchased); empty for raised. |
-| `basis` | decimal(14,2) | Default = acquisition `total` (purchased); 0 (raised). |
+| `acquisition` | entity_ref → `financial_transaction` | Basis source (purchased); empty for raised/acquired_other. |
+| `basis` | decimal(14,2) | Default = acquisition `total` (purchased) / 0 (raised) / operator-entered (acquired_other: stepped-up or carryover). Editable. |
 | `in_service_date` | datetime (date) | |
 | `macrs_class` | list | Inherited from acquisition category; overridable (§2.1). |
 | `depreciation_method` | list | Inherited from category; overridable. |
@@ -139,7 +163,7 @@ revisionable.
 | `enterprise` | entity_ref → species term, optional | Enterprise attribution. |
 | `notes`,`owner`,`created`,`changed`,revision | base | |
 
-Derived: `depreciable` = `basis_type == purchased && basis > 0 && macrs_class != none && !disposed`.
+Derived: `depreciable` = `basis_type != raised && basis > 0 && macrs_class != none && !disposed`.
 
 ### 3.2 `financial_liability`
 
