@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.depreciation_method
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.depreciation_method
+field_name: depreciation_method
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'Depreciation method'
+description: 'Default depreciation method for capital categories (Phase 5). 200% DB for farm 3/5/7/10-yr property post-2017; 150% DB mandatory for 15/20-yr; ADS is straight line. Inherited by depreciable assets; overridable per asset.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: list_string

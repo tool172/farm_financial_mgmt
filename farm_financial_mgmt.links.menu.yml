@@ -74,6 +74,14 @@ farm_financial_mgmt.report.tax_summary:
   parent: farm_financial_mgmt.reports
   weight: 6
 
+farm_financial_mgmt.depreciable_assets:
+  title: 'Depreciable Assets'
+  description: 'Capital assets and their tax basis (Phase 5).'
+  route_name: entity.depreciable_asset.collection
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: 12
+
 farm_financial_mgmt.import_export:
   title: 'Import / Export'
   description: 'CSV export (CPA, QuickBooks) and own-format import.'

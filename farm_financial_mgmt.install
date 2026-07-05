@@ -20,6 +20,9 @@ function farm_financial_mgmt_install(): void {
   _farm_financial_mgmt_seed_categories();
   _farm_financial_mgmt_populate_tax_fields();
   _farm_financial_mgmt_populate_qb_accounts();
+  // Phase 5: MACRS class/method fields ship via config/install; seed their
+  // defaults onto the capital categories.
+  _farm_financial_mgmt_populate_macrs_defaults();
 }
 
 /**
@@ -270,6 +273,100 @@ function _farm_financial_mgmt_populate_tax_fields(): void {
     $term->set('tax_form', $tax_form);
     $term->set('capital', $capital);
     $term->set('requires_cost_basis', $requires_cost_basis);
+    $term->save();
+  }
+}
+
+/**
+ * Phase 5.1: install the depreciable_asset entity + capital-category MACRS fields.
+ *
+ * In place (no reinstall): installs the new content entity type, adds the
+ * macrs_class/depreciation_method fields to the financial_category vocabulary,
+ * and seeds the MACRS class/method defaults onto the capital categories so the
+ * class logic lives on the category term (PHASE5 §2.1), inherited by assets.
+ */
+function farm_financial_mgmt_update_10501(): void {
+  $etm = \Drupal::entityTypeManager();
+  $etm->clearCachedDefinitions();
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('depreciable_asset') === NULL) {
+    $manager->installEntityType($etm->getDefinition('depreciable_asset'));
+  }
+
+  _farm_financial_mgmt_install_macrs_category_fields();
+  _farm_financial_mgmt_populate_macrs_defaults();
+}
+
+/**
+ * Adds macrs_class/depreciation_method to the financial_category vocabulary.
+ *
+ * Idempotent — creates each field storage + instance only when absent (safe on
+ * installs that already imported the shipped config). Allowed values come from
+ * the entity class constants (single source, shared with the shipped YAML). The
+ * associative value=>label form is passed to ::create(); the options field type
+ * normalizes it to the stored sequence form on save.
+ */
+function _farm_financial_mgmt_install_macrs_category_fields(): void {
+  $fields = [
+    'macrs_class' => [
+      'label' => 'MACRS property class',
+      'description' => 'MACRS property class / recovery period for capital categories (Phase 5). Inherited by depreciable assets; overridable per asset.',
+      'values' => \Drupal\farm_financial_mgmt\Entity\DepreciableAsset::MACRS_CLASSES,
+    ],
+    'depreciation_method' => [
+      'label' => 'Depreciation method',
+      'description' => 'Default depreciation method for capital categories (Phase 5). Inherited by depreciable assets; overridable per asset.',
+      'values' => \Drupal\farm_financial_mgmt\Entity\DepreciableAsset::METHODS,
+    ],
+  ];
+  foreach ($fields as $field_name => $info) {
+    if (\Drupal\field\Entity\FieldStorageConfig::loadByName('taxonomy_term', $field_name) === NULL) {
+      \Drupal\field\Entity\FieldStorageConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'taxonomy_term',
+        'type' => 'list_string',
+        'cardinality' => 1,
+        'settings' => ['allowed_values' => $info['values']],
+      ])->save();
+    }
+    if (\Drupal\field\Entity\FieldConfig::loadByName('taxonomy_term', 'financial_category', $field_name) === NULL) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'financial_category',
+        'label' => $info['label'],
+        'description' => $info['description'],
+      ])->save();
+    }
+  }
+}
+
+/**
+ * Seeds MACRS class/method defaults onto the capital categories. Idempotent.
+ *
+ * 200% DB for farm 3/5/7/10-yr property (post-2017); 150% DB is mandatory for
+ * 15-yr land improvements (PHASE5 §2.1). Only sets empty fields, preserving any
+ * operator edits.
+ */
+function _farm_financial_mgmt_populate_macrs_defaults(): void {
+  $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $map = [
+    'Purchase of Breeding Stock' => ['5yr', 'macrs_gds_200'],
+    'Equipment / Machinery Purchase' => ['7yr', 'macrs_gds_200'],
+    'Land Improvement' => ['15yr', 'macrs_gds_150'],
+  ];
+  foreach ($map as $name => [$class, $method]) {
+    $terms = $storage->loadByProperties(['vid' => 'financial_category', 'name' => $name]);
+    if (!$terms) {
+      continue;
+    }
+    $term = reset($terms);
+    if ($term->hasField('macrs_class') && $term->get('macrs_class')->isEmpty()) {
+      $term->set('macrs_class', $class);
+    }
+    if ($term->hasField('depreciation_method') && $term->get('depreciation_method')->isEmpty()) {
+      $term->set('depreciation_method', $method);
+    }
     $term->save();
   }
 }

@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.macrs_class
+    - taxonomy.vocabulary.financial_category
+  enforced:
+    module:
+      - farm_financial_mgmt
+id: taxonomy_term.financial_category.macrs_class
+field_name: macrs_class
+entity_type: taxonomy_term
+bundle: financial_category
+label: 'MACRS property class'
+description: 'MACRS property class / recovery period for capital categories (Phase 5). Inherited by depreciable assets created from this category; overridable per asset.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  {  }
+field_type: list_string

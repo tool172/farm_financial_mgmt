@@ -1,0 +1,44 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.macrs_class
+field_name: macrs_class
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: 3yr
+      label: '3-year'
+    -
+      value: 5yr
+      label: '5-year'
+    -
+      value: 7yr
+      label: '7-year'
+    -
+      value: 10yr
+      label: '10-year'
+    -
+      value: 15yr
+      label: '15-year'
+    -
+      value: 20yr
+      label: '20-year'
+    -
+      value: none
+      label: 'None (not depreciable)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

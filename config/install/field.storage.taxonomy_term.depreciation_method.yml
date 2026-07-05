@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - farm_financial_mgmt
+  module:
+    - options
+    - taxonomy
+id: taxonomy_term.depreciation_method
+field_name: depreciation_method
+entity_type: taxonomy_term
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: macrs_gds_200
+      label: 'MACRS GDS — 200% declining balance'
+    -
+      value: macrs_gds_150
+      label: 'MACRS GDS — 150% declining balance'
+    -
+      value: macrs_ads
+      label: 'MACRS ADS — straight line'
+    -
+      value: straight_line
+      label: 'Straight line (book)'
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
