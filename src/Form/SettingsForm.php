@@ -84,6 +84,26 @@ class SettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('tax_planning_enabled') ?? TRUE,
     ];
 
+    $form['balance_sheet'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Balance sheet — entered figures'),
+      '#description' => $this->t('The balance sheet is asset-side-complete (the depreciation schedule and valuations feed it automatically). Cash cannot be derived from an income/expense ledger, so it is entered here.'),
+      '#open' => TRUE,
+    ];
+    $form['balance_sheet']['cash_position'] = [
+      '#type' => 'number',
+      '#step' => '0.01',
+      '#title' => $this->t('Cash position'),
+      '#description' => $this->t('Current cash / bank balance. An entered figure, not derived from the ledger.'),
+      '#default_value' => $config->get('cash_position') ?? 0,
+    ];
+    $form['balance_sheet']['cash_as_of'] = [
+      '#type' => 'date',
+      '#title' => $this->t('Cash as-of date'),
+      '#description' => $this->t('The date the cash position above was taken.'),
+      '#default_value' => $config->get('cash_as_of') ?: '',
+    ];
+
     return parent::buildForm($form, $form_state);
   }
 
@@ -95,6 +115,8 @@ class SettingsForm extends ConfigFormBase {
       ->set('currency', $form_state->getValue('currency'))
       ->set('accounting_method', $form_state->getValue('accounting_method'))
       ->set('tax_planning_enabled', (bool) $form_state->getValue('tax_planning_enabled'))
+      ->set('cash_position', (float) $form_state->getValue('cash_position'))
+      ->set('cash_as_of', $form_state->getValue('cash_as_of') ?: '')
       ->save();
     // Rebuild menu links so the Tax Summary link appears/disappears immediately.
     \Drupal::service('plugin.manager.menu.link')->rebuild();

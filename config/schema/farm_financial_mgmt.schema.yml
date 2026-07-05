@@ -11,6 +11,12 @@ farm_financial_mgmt.settings:
     tax_planning_enabled:
       type: boolean
       label: 'Enable Schedule F tax planning/tracking'
+    cash_position:
+      type: float
+      label: 'Entered cash position (balance sheet current assets)'
+    cash_as_of:
+      type: string
+      label: 'As-of date for the entered cash position (YYYY-MM-DD)'
 
 farm_financial_mgmt.depreciation_limits:
   type: config_object

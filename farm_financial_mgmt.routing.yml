@@ -62,6 +62,14 @@ farm_financial_mgmt.report.tax_summary:
   requirements:
     _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::taxAccess'
 
+farm_financial_mgmt.report.balance_sheet:
+  path: '/financial/reports/balance-sheet'
+  defaults:
+    _controller: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::balanceSheet'
+    _title: 'Balance Sheet'
+  requirements:
+    _permission: 'view financial reports'
+
 farm_financial_mgmt.report.depreciation:
   path: '/financial/reports/depreciation'
   defaults:

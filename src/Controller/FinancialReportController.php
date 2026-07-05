@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\farm_financial_mgmt\Service\BalanceSheetBuilder;
 use Drupal\farm_financial_mgmt\Service\DepreciationEngine;
 use Drupal\farm_financial_mgmt\Service\ReportBuilder;
 use Drupal\farm_financial_mgmt\Service\TaxSummaryBuilder;
@@ -27,6 +28,7 @@ class FinancialReportController extends ControllerBase {
     protected RequestStack $requestStack,
     protected TaxSummaryBuilder $taxSummaryBuilder,
     protected DepreciationEngine $depreciationEngine,
+    protected BalanceSheetBuilder $balanceSheetBuilder,
   ) {}
 
   /**
@@ -39,6 +41,7 @@ class FinancialReportController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('farm_financial_mgmt.tax_summary_builder'),
       $container->get('farm_financial_mgmt.depreciation_engine'),
+      $container->get('farm_financial_mgmt.balance_sheet_builder'),
     );
   }
 
@@ -253,6 +256,149 @@ class FinancialReportController extends ControllerBase {
   }
 
   /**
+   * Balance sheet / net-worth statement (Phase 5.6).
+   *
+   * Market column (managerial, default) with a cost-basis reconciliation column
+   * alongside. Equity is the derived plug (assets − liabilities); the spread
+   * between the two equity figures is the valuation (unrealized-appreciation)
+   * equity. Both columns must close to zero. The header states what is entered
+   * vs automatic and the market as-of date.
+   */
+  public function balanceSheet(): array {
+    $filters = $this->filters();
+    $year = (int) $filters['year'];
+    $currency = $this->currency();
+    $data = $this->balanceSheetBuilder->build($year);
+
+    $money = fn($n) => $currency . ' ' . number_format((float) $n, 2);
+
+    // --- Assets grid (4 cols: item, cost basis, market, market source). ---
+    $asset_rows = [];
+    foreach ($data['assets'] as $a) {
+      $source = match ($a['market_source']) {
+        'appraised' => $this->t('appraised @date', ['@date' => $a['market_as_of'] ? date('Y-m-d', $a['market_as_of']) : '—']),
+        'market_feed' => $this->t('market @date', ['@date' => $a['market_as_of'] ? date('Y-m-d', $a['market_as_of']) : '—']),
+        default => $this->t('book (no market)'),
+      };
+      $asset_rows[] = ['cells' => [
+        ['value' => $a['label']],
+        ['value' => $money($a['basis']), 'num' => TRUE],
+        ['value' => $money($a['market']), 'num' => TRUE],
+        ['value' => $source],
+      ]];
+    }
+    $asset_rows[] = ['cells' => [
+      ['value' => $this->t('Cash (entered)')],
+      ['value' => $money($data['cash']), 'num' => TRUE],
+      ['value' => $money($data['cash']), 'num' => TRUE],
+      ['value' => $data['cash_as_of'] ? $this->t('entered @date', ['@date' => $data['cash_as_of']]) : $this->t('entered')],
+    ]];
+    $asset_rows[] = ['total' => TRUE, 'cells' => [
+      ['value' => $this->t('Total assets')],
+      ['value' => $money($data['total_assets_basis']), 'num' => TRUE],
+      ['value' => $money($data['total_assets_market']), 'num' => TRUE],
+      ['value' => ''],
+    ]];
+    $assets_grid = [
+      'heading' => $this->t('Assets'),
+      'headers' => [
+        ['label' => $this->t('Item')],
+        ['label' => $this->t('Cost basis'), 'num' => TRUE],
+        ['label' => $this->t('Market'), 'num' => TRUE],
+        ['label' => $this->t('Market basis')],
+      ],
+      'rows' => $asset_rows,
+    ];
+
+    // --- Liabilities grid. ---
+    $liab_rows = [];
+    foreach ($data['liabilities'] as $l) {
+      $liab_rows[] = ['cells' => [
+        ['value' => $l['label']],
+        ['value' => $money($l['balance']), 'num' => TRUE],
+        ['value' => $money($l['balance']), 'num' => TRUE],
+      ]];
+    }
+    $liab_rows[] = ['total' => TRUE, 'cells' => [
+      ['value' => $this->t('Total liabilities')],
+      ['value' => $money($data['total_liabilities']), 'num' => TRUE],
+      ['value' => $money($data['total_liabilities']), 'num' => TRUE],
+    ]];
+    $liab_grid = [
+      'heading' => $this->t('Liabilities (entered)'),
+      'headers' => [['label' => $this->t('Loan')], ['label' => $this->t('Cost basis'), 'num' => TRUE], ['label' => $this->t('Market'), 'num' => TRUE]],
+      'rows' => $liab_rows,
+    ];
+
+    // --- Equity grid: derived plug + valuation spread + balance check. ---
+    $equity_grid = [
+      'heading' => $this->t('Owner equity (derived — assets less liabilities)'),
+      'headers' => [['label' => $this->t('')], ['label' => $this->t('Cost basis'), 'num' => TRUE], ['label' => $this->t('Market'), 'num' => TRUE]],
+      'rows' => [
+        ['cells' => [
+          ['value' => $this->t('Total assets')],
+          ['value' => $money($data['total_assets_basis']), 'num' => TRUE],
+          ['value' => $money($data['total_assets_market']), 'num' => TRUE],
+        ]],
+        ['cells' => [
+          ['value' => $this->t('Less: liabilities')],
+          ['value' => '(' . $money($data['total_liabilities']) . ')', 'num' => TRUE],
+          ['value' => '(' . $money($data['total_liabilities']) . ')', 'num' => TRUE],
+        ]],
+        ['total' => TRUE, 'cells' => [
+          ['value' => $this->t('Owner equity (net worth)')],
+          ['value' => $money($data['equity_basis']), 'num' => TRUE],
+          ['value' => $money($data['equity_market']), 'num' => TRUE],
+        ]],
+        ['cells' => [
+          ['value' => $this->t('Valuation equity (market − cost basis = unrealized appreciation)')],
+          ['value' => '—', 'num' => TRUE],
+          ['value' => $money($data['valuation_equity']), 'num' => TRUE],
+        ]],
+        ['cells' => [
+          ['value' => $this->t('Balance check (assets − liabilities − equity, must be 0)')],
+          ['value' => $money($data['balances_basis']), 'num' => TRUE],
+          ['value' => $money($data['balances_market']), 'num' => TRUE],
+        ]],
+      ],
+    ];
+
+    // --- Summary tiles: the two net-worth figures and the spread. ---
+    $summary = [
+      ['kind' => 'income', 'label' => $this->t('Net worth (market)'), 'value' => number_format($data['equity_market'], 2)],
+      ['kind' => 'expense', 'label' => $this->t('Net worth (cost basis)'), 'value' => number_format($data['equity_basis'], 2)],
+      ['kind' => 'net', 'label' => $this->t('Valuation equity (spread)'), 'value' => number_format($data['valuation_equity'], 2)],
+    ];
+
+    // --- Header disclosures: three, because the sheet is partly entered. ---
+    if ($data['market_as_of'] === NULL) {
+      $market_line = $this->t('Market values: book/appraisal only — no market-feed date.');
+    }
+    elseif ($data['market_dates_vary']) {
+      $market_line = $this->t('Market values as of @date (dates vary — see the Market basis column).', ['@date' => date('Y-m-d', $data['market_as_of'])]);
+    }
+    else {
+      $market_line = $this->t('Market values as of @date.', ['@date' => date('Y-m-d', $data['market_as_of'])]);
+    }
+    $disclosures = [
+      $market_line,
+      $data['cash_as_of']
+        ? $this->t('Cash is an entered position as of @date, not derived from the ledger.', ['@date' => $data['cash_as_of']])
+        : $this->t('Cash is an entered position, not derived from the ledger.'),
+      $this->t('Liabilities reflect entered loans and their tracked principal paydown.'),
+    ];
+
+    if (!$data['balanced']) {
+      $this->messenger()->addError($this->t('Balance sheet does not close: cost-basis @b, market @m. This is a bug — both columns must sum to zero.', [
+        '@b' => $money($data['balances_basis']),
+        '@m' => $money($data['balances_market']),
+      ]));
+    }
+
+    return $this->reportRender($this->t('Balance Sheet (Net Worth) — as of @year', ['@year' => $year]), $filters, $summary, NULL, NULL, [], [$assets_grid, $liab_grid, $equity_grid], $disclosures);
+  }
+
+  /**
    * Profit & Loss: income, expense, net; by category; period range.
    */
   public function profitAndLoss(): array {
@@ -320,7 +466,7 @@ class FinancialReportController extends ControllerBase {
   /**
    * Assembles the render array shared by report pages.
    */
-  protected function reportRender($title, array $filters, array $summary, ?string $chart_id, ?array $chart, array $sections, array $grids = []): array {
+  protected function reportRender($title, array $filters, array $summary, ?string $chart_id, ?array $chart, array $sections, array $grids = [], array $disclosures = []): array {
     $settings = [];
     if ($chart_id && $chart) {
       $settings['farmFinancialMgmt']['charts'][$chart_id] = $chart;
@@ -338,6 +484,7 @@ class FinancialReportController extends ControllerBase {
       '#chart_id' => $chart_id,
       '#sections' => $sections,
       '#grids' => $grids,
+      '#disclosures' => $disclosures,
       '#cache' => [
         'tags' => ['financial_line_list'],
         'contexts' => ['user.permissions', 'url.query_args'],
