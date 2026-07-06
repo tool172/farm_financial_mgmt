@@ -134,6 +134,14 @@ farm_financial_mgmt.export.depreciable_assets_csv:
   requirements:
     _permission: 'view financial reports'
 
+farm_financial_mgmt.depreciation_limits:
+  path: '/financial/settings/depreciation-limits'
+  defaults:
+    _form: '\Drupal\farm_financial_mgmt\Form\DepreciationLimitsForm'
+    _title: 'Depreciation Limits (§179 / Bonus)'
+  requirements:
+    _permission: 'administer financial mgmt'
+
 farm_financial_mgmt.settings:
   path: '/financial/settings'
   defaults:

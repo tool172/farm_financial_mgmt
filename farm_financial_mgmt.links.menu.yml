@@ -143,3 +143,11 @@ farm_financial_mgmt.settings:
   menu_name: admin
   parent: farm_financial_mgmt.financial
   weight: 20
+
+farm_financial_mgmt.depreciation_limits:
+  title: 'Depreciation Limits'
+  description: '§179 caps and bonus % per tax year (update annually).'
+  route_name: farm_financial_mgmt.depreciation_limits
+  menu_name: admin
+  parent: farm_financial_mgmt.financial
+  weight: 21
