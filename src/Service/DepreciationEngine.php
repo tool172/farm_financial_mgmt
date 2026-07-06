@@ -23,10 +23,12 @@ use Drupal\farm_financial_mgmt\Entity\DepreciableAssetInterface;
  * how much depreciation an asset has taken.
  *
  * Bounds (loud, not silent): mid-quarter tables are transcribed for 200% DB GDS
- * (3/5/7/10-yr) only; a mid-quarter year on a 150% DB or 15/20-yr asset throws
- * rather than falling back to a wrong convention. Mid-month (real property) is
- * likewise out of the transcribed set. §179/bonus for a year absent from the
- * limits config degrade to $0/0% with a surfaced message, never a stale year.
+ * (3/5/7/10-yr) and 150% DB GDS (15/20-yr) — all verified against Pub 946. The
+ * elective-150% mid-quarter case for PERSONAL property (3/5/7/10-yr) has no
+ * standard published table, so the engine throws for it rather than computing a
+ * guess. Mid-month (real property) is likewise out of the transcribed set.
+ * §179/bonus for a year absent from the limits config degrade to $0/0% with a
+ * surfaced message, never a stale year.
  */
 class DepreciationEngine {
 
@@ -81,6 +83,33 @@ class DepreciationEngine {
       '5yr' => [5.00, 38.00, 22.80, 13.68, 10.94, 9.58],
       '7yr' => [3.57, 27.55, 19.68, 14.06, 10.04, 8.73, 8.73, 7.64],
       '10yr' => [2.50, 19.50, 15.60, 12.48, 9.98, 7.99, 6.55, 6.55, 6.56, 6.55, 5.74],
+    ],
+  ];
+
+  /**
+   * MACRS GDS 150% DB, mid-quarter, 15- and 20-year property (Pub 946 Tables
+   * A-2 Q1 … A-5 Q4, the 15/20-yr columns — those classes always use 150% DB).
+   *
+   * Transcribed from the IRS Pub 946 PDF text layer and verified: each column
+   * sums to 100%. The 3/5/7/10-yr elective-150% mid-quarter case has no standard
+   * published table and is (correctly) not handled — the engine throws for it.
+   */
+  protected const MQ_150 = [
+    1 => [
+      '15yr' => [8.75, 9.13, 8.21, 7.39, 6.65, 5.99, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 0.74],
+      '20yr' => [6.563, 7.000, 6.482, 5.996, 5.546, 5.130, 4.746, 4.459, 4.459, 4.459, 4.459, 4.460, 4.459, 4.460, 4.459, 4.460, 4.459, 4.460, 4.459, 4.460, 0.565],
+    ],
+    2 => [
+      '15yr' => [6.25, 9.38, 8.44, 7.59, 6.83, 6.15, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 2.21],
+      '20yr' => [4.688, 7.148, 6.612, 6.116, 5.658, 5.233, 4.841, 4.478, 4.463, 4.463, 4.463, 4.463, 4.463, 4.463, 4.462, 4.463, 4.462, 4.463, 4.462, 4.463, 1.673],
+    ],
+    3 => [
+      '15yr' => [3.75, 9.63, 8.66, 7.80, 7.02, 6.31, 5.90, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 3.69],
+      '20yr' => [2.813, 7.289, 6.742, 6.237, 5.769, 5.336, 4.936, 4.566, 4.460, 4.460, 4.460, 4.460, 4.461, 4.460, 4.461, 4.460, 4.461, 4.460, 4.461, 4.460, 2.788],
+    ],
+    4 => [
+      '15yr' => [1.25, 9.88, 8.89, 8.00, 7.20, 6.48, 5.90, 5.90, 5.90, 5.91, 5.90, 5.91, 5.90, 5.91, 5.90, 5.17],
+      '20yr' => [0.938, 7.430, 6.872, 6.357, 5.880, 5.439, 5.031, 4.654, 4.458, 4.458, 4.458, 4.458, 4.458, 4.458, 4.458, 4.458, 4.458, 4.459, 4.458, 4.459, 3.901],
     ],
   ];
 
@@ -208,11 +237,13 @@ class DepreciationEngine {
       $table = $method === 'macrs_gds_150' ? self::HY_150 : self::HY_200;
     }
     else {
-      if ($method !== 'macrs_gds_200') {
-        throw new \InvalidArgumentException("Mid-quarter tables are transcribed for 200% DB GDS only; asset uses '$method'. Update in a follow-on before running a mid-quarter year on this method.");
-      }
       $quarter = $this->quarterOf($in_service);
-      $table = self::MQ_200[$quarter];
+      // 200% DB GDS mid-quarter covers 3/5/7/10-yr; 150% DB GDS mid-quarter is
+      // published for 15/20-yr only (those classes always use 150% DB). The
+      // 3/5/7/10-yr elective-150% mid-quarter case has no standard published
+      // table and falls through to the "no table" throw below — an honest
+      // refusal, not a computed guess.
+      $table = $method === 'macrs_gds_150' ? self::MQ_150[$quarter] : self::MQ_200[$quarter];
     }
     if (!isset($table[$class])) {
       throw new \InvalidArgumentException("No MACRS table for method '$method', class '$class', convention '$convention'.");

@@ -87,14 +87,36 @@ class DepreciationEngineTest extends FinancialMgmtKernelTestBase {
   }
 
   /**
-   * DEGRADATION: a mid-quarter year on a 150% DB asset REFUSES (throws) rather
-   * than computing with an untranscribed table.
+   * 15- and 20-year 150% DB mid-quarter COMPUTES against Pub 946 (A-2…A-5 15/20-yr
+   * columns), verified from the IRS PDF text layer. Golden constants.
    */
-  public function test150PercentMidQuarterThrows(): void {
-    // A single 15-year 150% asset placed in Q4 -> 100% Q4 -> mid-quarter.
-    $asset = $this->createAsset(['basis' => 30000, 'macrs_class' => '15yr', 'depreciation_method' => 'macrs_gds_150', 'in_service_date' => '2025-11-01', 'bonus_pct' => 0]);
+  public function test150PercentMidQuarterGoldenValues(): void {
+    // Both placed in 2025; Q4 = 50% of basis (> 40%) trips mid-quarter.
+    // 15-year land improvement placed Q4 -> Table A-5 15-yr (year 1 = 1.25%).
+    $l15 = $this->createAsset(['basis' => 100000, 'macrs_class' => '15yr', 'depreciation_method' => 'macrs_gds_150', 'in_service_date' => '2025-11-01', 'bonus_pct' => 0]);
+    // 20-year placed Q1 -> Table A-2 20-yr (year 1 = 6.563%).
+    $p20 = $this->createAsset(['basis' => 100000, 'macrs_class' => '20yr', 'depreciation_method' => 'macrs_gds_150', 'in_service_date' => '2025-02-01', 'bonus_pct' => 0]);
+
+    $s15 = $this->engine->schedule($l15);
+    $this->assertSame(1250.0, $s15[2025]['depreciation'], '15-yr Q4 year 1 = 100000 * 1.25%.');
+    $this->assertSame(9880.0, $s15[2026]['depreciation'], '15-yr Q4 year 2 = 100000 * 9.88%.');
+    $this->assertSame(100000.0, round(array_sum(array_column($s15, 'depreciation')), 2), '15-yr schedule exhausts basis.');
+
+    $s20 = $this->engine->schedule($p20);
+    $this->assertSame(6563.0, $s20[2025]['depreciation'], '20-yr Q1 year 1 = 100000 * 6.563%.');
+    $this->assertSame(100000.0, round(array_sum(array_column($s20, 'depreciation')), 2), '20-yr schedule exhausts basis.');
+  }
+
+  /**
+   * DEGRADATION preserved: an elective 150% on PERSONAL property (3/5/7/10-yr)
+   * in a mid-quarter year still REFUSES — no standard published table exists for
+   * that case, so the engine throws rather than computing a guess.
+   */
+  public function testElective150PersonalPropertyMidQuarterThrows(): void {
+    // A single 5-year 150% asset placed in Q4 -> 100% Q4 -> mid-quarter.
+    $asset = $this->createAsset(['basis' => 10000, 'macrs_class' => '5yr', 'depreciation_method' => 'macrs_gds_150', 'in_service_date' => '2025-11-01', 'bonus_pct' => 0]);
     $this->expectException(\InvalidArgumentException::class);
-    $this->expectExceptionMessage('Mid-quarter tables are transcribed for 200% DB GDS only');
+    $this->expectExceptionMessage("No MACRS table for method 'macrs_gds_150', class '5yr'");
     $this->engine->schedule($asset);
   }
 
