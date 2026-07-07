@@ -1,195 +1,209 @@
 # Farm Financial Management
 
-Ranch **income and expense tracking** for [farmOS](https://farmos.org) 4.x, with
-financial reporting, Schedule F tax planning, a MACRS depreciation engine, a
-market-value balance sheet, per-species enterprise profitability, and CSV
-interchange.
+> Track your ranch's money — income, expenses, taxes, and net worth — right
+> inside [farmOS](https://farmos.org).
 
-Built on **purpose-built content entities** (the "Option C" data model) rather
-than the farmOS log model, so a transaction is a first-class financial record —
-not a repurposed log — and every report queries a single denormalized line
-table with no joins.
+Farm Financial Management adds a **Financial** area to farmOS where you record
+what you earn and spend, categorize it the way your taxes need, and get reports
+that answer real questions: *Did the cattle make money this year? What's my
+Schedule F going to look like? What's the ranch worth if the banker asks?*
 
-- **farmOS:** 4.x · **Drupal:** ^10 || ^11 · **PHP:** 8.1+
-- **Status:** Phases 1–5 complete (ledger → reporting → tax → interchange →
-  capital/depreciation/balance sheet). Version `1.0.0-dev`.
+It's built for cash-basis farm bookkeeping — a single currency, income and
+expenses with itemized lines and receipts — not a double-entry accounting
+system. If you keep farm books for a Schedule F and want them to live next to
+your animals, pastures, and logs in farmOS, this is for you.
 
----
+![Financial dashboard](screenshots/dashboard.png)
 
-## What it does
-
-- **Double-nothing, single-currency ledger.** Cash-basis income/expense
-  transactions with itemized lines, receipts, counterparties, and payment
-  status — not a double-entry general ledger, deliberately.
-- **Reports** (server-rendered, Chart.js where charted): Profit & Loss, Spending
-  by Category, Income by Category, Cash Flow, Monthly view, Per-Record P&L,
-  **Tax Summary (Schedule F)**, **Depreciation Schedule (Form 4562)**, **Form 4797
-  (dispositions)**, **Enterprise P&L**, and a **Balance Sheet (Net Worth)**.
-- **Schedule F tax planning.** Category → Schedule F line mapping, purchased-for-
-  resale cost-basis netting (1a − 1b = 1c), and routing of breeding-stock sales
-  to Form 4797 and lease income to Form 4835 / Schedule E.
-- **Capital & depreciation.** A MACRS depreciation engine (GDS 200%/150% DB, ADS,
-  §179, bonus), verified against IRS Pub 946 to the cent; a dual **cost-basis +
-  market** valuation; and a market-value balance sheet with a cost-basis
-  reconciliation column.
-- **Enterprise profitability.** Per-species profit & loss — revenue less direct
-  (AUE-allocated) cost less overhead (revenue-share) — with a structural
-  guarantee that every operating dollar lands in exactly one pool.
-- **Liabilities.** Loans/notes whose balance is derived from principal paydown,
-  with loan payments split into deductible interest and (excluded) principal.
-- **CSV interchange.** Own-format export/import (round-trip backup of the whole
-  ledger + capital layer) and a QuickBooks-mappable export.
+- **farmOS:** 4.x · **Drupal:** 10 / 11
+- **Status:** stable feature set (ledger, reporting, tax planning, depreciation,
+  balance sheet, enterprise profitability, import/export).
 
 ---
 
-## Requirements
+## What you can do
 
-Declared in `farm_financial_mgmt.info.yml`:
+- **Record income and expenses** with itemized lines, a category, an optional
+  animal/field, a receipt photo, and payment status.
+- **See where the money goes** — profit & loss, spending and income by category,
+  cash flow, and month-by-month views.
+- **Plan your Schedule F** — categories map to Schedule F lines, and a Tax
+  Summary rolls everything up the way the form expects (including breeding-stock
+  sales on Form 4797 and depreciation on line 14).
+- **Depreciate equipment and breeding stock** — a MACRS depreciation schedule
+  (Form 4562), §179 and bonus, and Form 4797 gain/recapture when you sell.
+- **Know which enterprise pays** — a per-species profit & loss that splits shared
+  costs fairly (feed by animal units, overhead by revenue share).
+- **Produce a net-worth statement** — a balance sheet with both market value and
+  cost basis, ready for a lending conversation.
+- **Back up and hand off** — export your books for your CPA or QuickBooks, and
+  re-import your own export to restore.
 
-- `asset:asset`, `farm:farm_unit`
-- `inline_entity_form:inline_entity_form`
-- `drupal:taxonomy`, `drupal:views`, `drupal:file`, `drupal:options`,
-  `drupal:datetime`, `drupal:user`
+---
 
-Optional (soft integrations, guarded by `moduleExists` — no hard dependency):
-
-- `farm_cattle_prices` + `farm_ranch_ui` — live USDA cattle market values feed the
-  balance sheet's market column when present.
-
-## Installation
+## Install
 
 ```bash
 drush en farm_financial_mgmt -y
-drush updb -y      # installs entity schemas, fields, and seeded config
+drush updb -y      # sets up the ledger, categories, and defaults
 drush cr
 ```
 
-A top-level **Financial** item appears in the farmOS toolbar with the dashboard,
-ledger, reports, depreciable assets, liabilities, import/export, and settings.
+A **Financial** item appears in the farmOS toolbar. Everything below lives under
+it.
+
+**Requires** the farmOS `asset` and `farm_unit` modules plus `inline_entity_form`
+(all standard on a farmOS install). *Optional:* if you also run
+`farm_cattle_prices` and `farm_ranch_ui`, the balance sheet will value breeding
+cattle at live USDA market prices automatically.
 
 ---
 
-## Concepts
+## Getting started
 
-- **Transaction + lines.** A `financial_transaction` is the payment envelope
-  (date, counterparty, method, status, receipt); its `financial_line` children
-  carry category, amount, and optional asset/enterprise attribution. Both are
-  independently revisionable. On save, the transaction's date / reporting-year /
-  direction are **denormalized onto each line** so reports hit one table.
-- **Categories.** A two-level `financial_category` taxonomy (Income / Expense →
-  working categories). Each category carries the "tax intelligence" the reports
-  read: `schedule_f_line`, `tax_form`, `capital`, `allocatable`,
-  `requires_cost_basis`, `qb_account`, and (for capital) `macrs_class` /
-  `depreciation_method`.
-- **Allocatable = the direct/overhead partition.** A category flagged
-  `allocatable` is a direct, consumption-scaling cost (AUE-allocated to animals);
-  everything else is overhead. This one flag is the structural partition the
-  enterprise P&L and per-animal running cost both rely on.
-- **Capital vs. recognized.** A capital purchase is **capitalized, not expensed**
-  — it never hits operating expense; its cost is recognized over its life as
-  depreciation. The Tax Summary, Enterprise P&L, and (managerial) Profit & Loss
-  all treat it that way, from one depreciation figure.
-- **Raised vs. purchased breeding stock.** A `basis_type` on each depreciable
-  asset (`purchased` / `raised` / `acquired_other`) is the single signal that
-  drives both depreciation and Form 4797 recapture — a raised animal has zero
-  basis and zero recapture; a purchased one recaptures depreciation taken.
+1. **Open Financial → Transactions** and add your first transaction.
+   Choose Income or Expense, set the date and who it was with, then add one or
+   more lines — each with a category and an amount. Attach the receipt if you
+   have it.
+
+   ![Adding a transaction](screenshots/add-transaction.png)
+
+2. **Categorize consistently.** The default categories already map to Schedule F
+   lines, so the tax reports work out of the box. Tag a line to an animal or
+   field when you want per-animal or per-enterprise costing.
+
+3. **Read the reports.** Head to **Financial → Reports**. As soon as you have a
+   few transactions, the dashboard and reports fill in.
 
 ---
 
-## Reports
+## The reports
 
-| Report | What it shows |
+Everything under **Financial → Reports**. Each answers a specific question.
+
+### Profit & Loss
+Income minus operating expense minus depreciation. A true income statement —
+buying a tractor doesn't show up as a loss the year you buy it; its cost is
+spread over its life as depreciation, the same way your taxes treat it.
+
+![Profit & Loss](screenshots/profit-loss.png)
+
+### Spending / Income by Category, Cash Flow, Monthly
+Where the money went, charted, and over time.
+
+![Spending by category](screenshots/spending.png)
+
+### Tax Summary (Schedule F)
+Your farm income and deductions organized by Schedule F line — Part I income,
+Part II expenses, the purchased-for-resale netting (lines 1a/1b/1c), depreciation
+on line 14, and anything that belongs on Form 4797 or 4835 pulled out separately.
+Turn tax planning off in Settings if you don't want it.
+
+![Tax Summary](screenshots/tax-summary.png)
+
+### Depreciation Schedule (Form 4562)
+Every depreciable asset with its basis, §179, bonus, method, this year's
+depreciation, accumulated depreciation, and remaining book value.
+
+![Depreciation schedule](screenshots/depreciation.png)
+
+### Form 4797 (Dispositions)
+When you sell breeding or draft stock or equipment, this shows the gain or loss
+split into ordinary depreciation recapture and §1231 gain — including the
+difference between a **purchased** animal (recaptures depreciation) and a
+**raised** one (zero basis, all §1231).
+
+### Enterprise P&L
+Per-species profit and loss: revenue, direct costs (feed and vet allocated by
+animal units), and a fair share of overhead. A species you haven't sold from yet
+still shows its true cost, so it can't look "free."
+
+![Enterprise P&L](screenshots/enterprise-pl.png)
+
+### Balance Sheet (Net Worth)
+Assets minus liabilities equals equity, in two columns — **market value** (what
+it's worth today) and **cost basis** (what the IRS sees) — with your cash and
+loan balances. The gap between the two equity numbers is your unrealized
+appreciation. The header states what's automatic and what you entered.
+
+![Balance sheet](screenshots/balance-sheet.png)
+
+---
+
+## Capital assets, loans, and taxes
+
+- **Depreciable Assets** (Financial → Depreciable Assets) — add equipment or
+  breeding stock; the depreciation class and method are filled in from the
+  purchase category and you can adjust them. Mark an asset **raised** for
+  home-raised breeding stock (zero basis) or **gifted/inherited** for stepped-up
+  or carryover basis.
+- **Liabilities** (Financial → Liabilities) — record loans and notes. Enter a
+  loan payment as an expense with an interest line and a principal line; the
+  interest is deductible, the principal draws down the loan balance, and the
+  balance is always computed from your payment history.
+- **Depreciation Limits** (Financial → Depreciation Limits) — §179 caps and bonus
+  % change by law every year. Set them here as the IRS publishes them. A year you
+  haven't set is treated as $0 / 0% with a visible notice — the tool won't guess.
+
+![Depreciation limits](screenshots/depreciation-limits.png)
+
+---
+
+## Import & export
+
+Under **Financial → Import / Export**:
+
+- **CPA / backup CSV** — your whole ledger, one row per line. Hand it to an
+  accountant, or keep it as a backup.
+- **QuickBooks CSV** — a QuickBooks-mappable version.
+- **Liabilities / Depreciable Assets CSV** — the capital layer, for a full backup.
+- **Import** — upload a CSV this module exported to restore or move it. (It reads
+  its own format only — not bank statements or third-party files.)
+
+---
+
+## Settings
+
+**Financial → Settings:** currency, cash vs. accrual, the tax-planning on/off
+toggle, and your entered **cash position** for the balance sheet.
+
+---
+
+## Screenshots
+
+The images above live in `screenshots/`. To capture them on your own install,
+visit each page (with a few transactions entered so they're not empty):
+
+| Image | Page |
 |---|---|
-| Profit & Loss | Income − operating expense − depreciation = net (a true income statement) |
-| Spending / Income by Category | Category rollups with charts |
-| Cash Flow / Monthly | Period and month-bucketed income/expense |
-| Per-Record P&L | Income/expense/net for a single asset |
-| Tax Summary (Schedule F) | Part I/II by line, 1a/1b/1c netting, 4797/4835/Sch E split, line 14 |
-| Depreciation Schedule (4562) | Per-asset basis / §179 / bonus / method / accumulated / book value |
-| Form 4797 | Disposition gain/loss with §1245 ordinary recapture vs. §1231 |
-| Enterprise P&L | Per-species revenue − direct (AUE) − overhead (revenue-share) |
-| Balance Sheet (Net Worth) | Market + cost-basis columns, entered cash + liabilities, derived equity |
-
-Tax-facing reports (Tax Summary, Depreciation Schedule, Form 4797) are hidden and
-access-gated when tax planning is turned off in settings.
+| `dashboard.png` | `/financial` |
+| `add-transaction.png` | `/financial/transaction/add` |
+| `profit-loss.png` | `/financial/reports/profit-loss` |
+| `spending.png` | `/financial/reports/spending` |
+| `tax-summary.png` | `/financial/reports/tax-summary` |
+| `depreciation.png` | `/financial/reports/depreciation` |
+| `enterprise-pl.png` | `/financial/reports/enterprise-pl` |
+| `balance-sheet.png` | `/financial/reports/balance-sheet` |
+| `depreciation-limits.png` | `/financial/settings/depreciation-limits` |
 
 ---
 
-## Depreciation & tax detail
+## Good to know
 
-- **MACRS** via published IRS Pub 946 percentage tables (transcribed and unit-
-  tested to the cent): GDS 200% DB and 150% DB half-year; 200% DB mid-quarter
-  (3/5/7/10-yr) and 150% DB mid-quarter (15/20-yr); ADS / straight-line. The
-  mid-quarter convention is computed at the year level (the >40%-in-Q4 test).
-- **§179 and bonus** limits live in an operator-editable **year → config table**
-  (Financial → Depreciation Limits), because these change by law annually. A year
-  with no configured limit **degrades loudly** ($0 / 0% with a surfaced notice),
-  never a silent stale year.
-- **Honest refusals.** Where no standard published table exists (e.g. elective
-  150% DB mid-quarter on personal property), the engine **throws** rather than
-  computing a guess.
-
----
-
-## Architecture
-
-Content entities: `financial_transaction`, `financial_line`, `depreciable_asset`,
-`financial_liability` (all revisionable). Vocabularies: `financial_category`,
-`financial_contact`.
-
-Key services (all injected; `\Drupal::` only in hooks):
-
-- `TransactionTotalizer` — recomputes total and writes the denormalization through
-  to lines on save.
-- `ReportBuilder` — single-table aggregations; the one gate every operating
-  rollup passes through (so principal is excluded by construction).
-- `DepreciationEngine` — MACRS/SL schedules; `accumulatedDepreciation()` is the
-  **single authoritative source** the balance sheet's basis column and the Form
-  4797 recapture both read.
-- `AssetValuationProviderInterface` (`BookValueProvider` +
-  `LivestockMarketValueProvider`) — dual basis/market valuation, swappable.
-- `TaxSummaryBuilder`, `Form4797Builder`, `BalanceSheetBuilder`,
-  `EnterpriseCostAllocator`, `RunningCostCalculator`, `CsvExporter` /
-  `CsvImporter`, and a pluggable `AueProviderInterface`.
-
-A running design principle: **one derived source per fact** (accumulated
-depreciation, liability balance, owned-as-of asset set), so reports that consume
-it cannot disagree.
+- **Cash-basis, single currency.** Not a general ledger, no accounts payable /
+  receivable, no bank reconciliation.
+- **The balance sheet's cash and loan balances are entered by you** — a farm
+  ledger tracks money in and out, not your bank balance, so you tell it your cash
+  position and it does the rest. The report says so on its face.
+- **Your data stays in farmOS.** No external services; the optional cattle-price
+  integration only reads prices you're already pulling with `farm_cattle_prices`.
+- **The tax math is checked.** MACRS depreciation follows the IRS Publication 946
+  tables, verified to the cent, and the module refuses to compute a number it
+  can't back with a published table rather than guessing.
 
 ## Permissions
 
-- `view financial transactions` — read the ledger
-- `manage financial transactions` — create/update/delete transactions and lines
-- `view financial reports` — reports and the dashboard
-- `administer financial mgmt` — categories, contacts, settings (restricted)
-
----
-
-## Testing
-
-Kernel test suite (13 tests) pins the invariants: Pub 946 golden values,
-cross-report relationship identities (recapture = balance-sheet accumulated; the
-three profit views agree on capital), the raised-vs-purchased fork, and the loud-
-degradation paths. See `tests/README.md`.
-
-```bash
-# host resolves the DB container as e.g. farmosdev-db-1, not "db"
-XDEBUG_MODE=off SIMPLETEST_DB="pgsql://farm:farm@<db-host>/farm" \
-  vendor/bin/phpunit -c web/core/phpunit.xml.dist --testdox \
-  web/modules/contrib/farm_financial_mgmt/tests/src/Kernel/
-```
-
-## Boundaries (by design)
-
-Cash-basis, single-currency. Not a double-entry general ledger, no AP/AR, no bank
-reconciliation. The balance sheet is **asset-side-complete** with **entered** cash
-and liabilities (a flow ledger can't derive a cash position) — the report header
-states this. CSV import handles only this module's own export schema (backup /
-restore), not bank-statement or third-party formats.
-
-## Documentation
-
-- `SPEC.md` — architecture and data-model rationale
-- `PHASE5.md` — the capital/depreciation/balance-sheet phase specification
-- `TASKS.md` — the phased build order
-- `CLAUDE.md` — working conventions and invariants
+- *View financial transactions* — read the ledger
+- *Manage financial transactions* — add/edit transactions
+- *View financial reports* — reports and dashboard
+- *Administer financial management* — categories, contacts, settings
