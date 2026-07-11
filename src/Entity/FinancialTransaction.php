@@ -131,7 +131,13 @@ class FinancialTransaction extends RevisionableContentEntityBase implements Fina
       ->setLabel(new TranslatableMarkup('Counterparty'))
       ->setSetting('target_type', 'taxonomy_term')
       ->setSetting('handler', 'default:taxonomy_term')
-      ->setSetting('handler_settings', ['target_bundles' => ['financial_contact' => 'financial_contact']])
+      ->setSetting('handler_settings', [
+        'target_bundles' => ['financial_contact' => 'financial_contact'],
+        // Let the autocomplete create a new contact when a name is typed that
+        // doesn't exist yet, instead of silently dropping it.
+        'auto_create' => TRUE,
+        'auto_create_bundle' => 'financial_contact',
+      ])
       ->setRevisionable(TRUE)
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);

@@ -114,7 +114,12 @@ class FinancialLiability extends RevisionableContentEntityBase implements Financ
       ->setLabel(new TranslatableMarkup('Lender'))
       ->setSetting('target_type', 'taxonomy_term')
       ->setSetting('handler', 'default:taxonomy_term')
-      ->setSetting('handler_settings', ['target_bundles' => ['financial_contact' => 'financial_contact']])
+      ->setSetting('handler_settings', [
+        'target_bundles' => ['financial_contact' => 'financial_contact'],
+        // Allow the autocomplete to create a new contact when typed.
+        'auto_create' => TRUE,
+        'auto_create_bundle' => 'financial_contact',
+      ])
       ->setRevisionable(TRUE)
       ->setDisplayOptions('form', ['type' => 'entity_reference_autocomplete', 'weight' => 0])
       ->setDisplayConfigurable('form', TRUE)
