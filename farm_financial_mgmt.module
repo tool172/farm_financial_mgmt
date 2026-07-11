@@ -44,6 +44,8 @@ function farm_financial_mgmt_theme(): array {
         'income' => '0.00',
         'expense' => '0.00',
         'net' => '0.00',
+        'income_by_category' => [],
+        'spending_by_category' => [],
         'recent' => [],
         'add_url' => NULL,
         'list_url' => NULL,

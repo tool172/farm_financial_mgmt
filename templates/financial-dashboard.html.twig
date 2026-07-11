@@ -20,6 +20,34 @@
     </div>
   </div>
 
+  {# Income & spending by category for the year, side by side, each with a pie. #}
+  <div class="ffm-breakdowns">
+    {% for b in [
+      {'title': 'Income by category'|t, 'data': income_by_category, 'kind': 'income'},
+      {'title': 'Spending by category'|t, 'data': spending_by_category, 'kind': 'expense'}
+    ] %}
+      <div class="ffm-breakdown ffm-breakdown--{{ b.kind }}">
+        <h2 class="ffm-heading">{{ b.title }} ({{ year }})</h2>
+        {% if b.data.has_data %}
+          <div class="ffm-breakdown-body">
+            <table class="ffm-cat-table">
+              {% for c in b.data.categories %}
+                <tr>
+                  <td><span class="ffm-swatch" style="background:{{ c.color }}"></span>{{ c.label }}</td>
+                  <td class="ffm-cat-amount">{{ currency }} {{ c.amount }}</td>
+                </tr>
+              {% endfor %}
+              <tr class="ffm-cat-total"><td>{{ 'Total'|t }}</td><td class="ffm-cat-amount">{{ currency }} {{ b.data.total }}</td></tr>
+            </table>
+            <div class="ffm-chart-wrap"><canvas id="{{ b.data.chart_id }}"></canvas></div>
+          </div>
+        {% else %}
+          <p class="ffm-empty">{{ 'No @kind recorded for @year.'|t({'@kind': b.kind, '@year': year}) }}</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
   <div class="ffm-actions">
     <a class="ffm-btn" href="{{ add_url }}">{{ 'Add transaction'|t }}</a>
     <a class="ffm-btn ffm-btn--secondary" href="{{ list_url }}">{{ 'All transactions'|t }}</a>

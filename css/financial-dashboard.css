@@ -31,3 +31,53 @@
 .financial-dashboard .ffm-table td { padding: 9px 14px; border-bottom: 0.5px solid var(--ffm-border); font-size: 13px; }
 .financial-dashboard .ffm-table tr:last-child td { border-bottom: none; }
 .financial-dashboard .ffm-empty { color: var(--ffm-muted); font-size: 13px; }
+
+/* Income / Spending by category — two side-by-side panels with a pie each,
+   sitting between the summary cards and the action buttons. */
+.financial-dashboard .ffm-breakdowns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 700px) {
+  .financial-dashboard .ffm-breakdowns { grid-template-columns: 1fr; }
+}
+.financial-dashboard .ffm-breakdown {
+  border: 0.5px solid var(--ffm-border);
+  border-radius: 10px;
+  padding: 16px;
+  background: #fff;
+}
+/* List on the left, pie on the right, within each panel. */
+.financial-dashboard .ffm-breakdown-body {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+@media (max-width: 900px) {
+  .financial-dashboard .ffm-breakdown-body { flex-direction: column; align-items: stretch; }
+}
+.financial-dashboard .ffm-breakdown-body .ffm-cat-table { flex: 1 1 auto; }
+.financial-dashboard .ffm-chart-wrap {
+  position: relative;
+  flex: 0 0 170px;
+  width: 170px;
+  height: 170px;
+}
+@media (max-width: 900px) {
+  .financial-dashboard .ffm-chart-wrap { flex-basis: 200px; width: 100%; height: 200px; }
+}
+.financial-dashboard .ffm-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+.financial-dashboard .ffm-cat-table { width: 100%; border-collapse: collapse; }
+.financial-dashboard .ffm-cat-table td { padding: 5px 2px; font-size: 13px; border-bottom: 0.5px solid var(--ffm-border); }
+.financial-dashboard .ffm-cat-table tr:last-child td { border-bottom: none; }
+.financial-dashboard .ffm-cat-amount { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.financial-dashboard .ffm-cat-total td { font-weight: 600; }
