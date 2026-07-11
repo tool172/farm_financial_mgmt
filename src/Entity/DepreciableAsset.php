@@ -49,7 +49,7 @@ use Drupal\views\EntityViewsData;
   handlers: [
     'storage' => SqlContentEntityStorage::class,
     'view_builder' => 'Drupal\Core\Entity\EntityViewBuilder',
-    'list_builder' => 'Drupal\Core\Entity\EntityListBuilder',
+    'list_builder' => 'Drupal\farm_financial_mgmt\DepreciableAssetListBuilder',
     'views_data' => EntityViewsData::class,
     'access' => 'Drupal\farm_financial_mgmt\Access\FinancialAccessControlHandler',
     'form' => [
@@ -83,7 +83,7 @@ use Drupal\views\EntityViewsData;
     'add-form' => '/financial/depreciable-asset/add',
     'edit-form' => '/financial/depreciable-asset/{depreciable_asset}/edit',
     'delete-form' => '/financial/depreciable-asset/{depreciable_asset}/delete',
-    'collection' => '/admin/content/depreciable-asset',
+    'collection' => '/financial/depreciable-assets',
   ],
 )]
 class DepreciableAsset extends RevisionableContentEntityBase implements DepreciableAssetInterface {
