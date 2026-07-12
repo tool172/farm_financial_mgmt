@@ -33,6 +33,44 @@ function farm_financial_mgmt_menu_links_discovered_alter(array &$links): void {
 }
 
 /**
+ * Implements hook_form_FORM_ID_alter() for the transaction add form.
+ *
+ * Prefill entry point for the Sales & Intake bridge: a "Record income/expense"
+ * link (from farm_ranch_ui) opens this form with ?ffm_direction=income|expense
+ * and ?ffm_asset={animal id}. Sets the direction, and surfaces the animal to
+ * link on a line (the inline line widget is button-based, so its asset field
+ * can't be pre-populated before the operator adds a line).
+ */
+function farm_financial_mgmt_form_financial_transaction_add_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, string $form_id): void {
+  // Only on a fresh build, and only when the prefill params are present.
+  if ($form_state->isSubmitted() || $form_state->getUserInput()) {
+    return;
+  }
+  $query = \Drupal::request()->query;
+  if (!$query->has('ffm_direction') && !$query->has('ffm_asset')) {
+    return;
+  }
+
+  $direction = (string) $query->get('ffm_direction');
+  if (in_array($direction, ['income', 'expense'], TRUE) && isset($form['direction']['widget'])) {
+    $form['direction']['widget']['#default_value'] = $direction;
+  }
+
+  $asset_id = (int) $query->get('ffm_asset');
+  if ($asset_id > 0) {
+    $asset = \Drupal::entityTypeManager()->getStorage('asset')->load($asset_id);
+    if ($asset !== NULL) {
+      $form['ffm_prefill_note'] = [
+        '#weight' => -50,
+        '#markup' => '<div class="messages messages--status">'
+          . t('Recording for <strong>@label</strong> — add a line below and select this animal so the entry links back to it.', ['@label' => $asset->label()])
+          . '</div>',
+      ];
+    }
+  }
+}
+
+/**
  * Implements hook_theme().
  */
 function farm_financial_mgmt_theme(): array {
