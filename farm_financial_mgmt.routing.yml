@@ -69,6 +69,7 @@ farm_financial_mgmt.report.enterprise_pl:
     _title: 'Enterprise P&L'
   requirements:
     _permission: 'view financial reports'
+    _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::basicModeAccess'
 
 farm_financial_mgmt.report.balance_sheet:
   path: '/financial/reports/balance-sheet'
@@ -77,6 +78,7 @@ farm_financial_mgmt.report.balance_sheet:
     _title: 'Balance Sheet'
   requirements:
     _permission: 'view financial reports'
+    _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::basicModeAccess'
 
 farm_financial_mgmt.report.depreciation:
   path: '/financial/reports/depreciation'
@@ -141,6 +143,7 @@ farm_financial_mgmt.depreciation_limits:
     _title: 'Depreciation Limits (§179 / Bonus)'
   requirements:
     _permission: 'administer financial mgmt'
+    _custom_access: '\Drupal\farm_financial_mgmt\Controller\FinancialReportController::basicModeAccess'
 
 farm_financial_mgmt.settings:
   path: '/financial/settings'

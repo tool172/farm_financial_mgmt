@@ -8,6 +8,9 @@ farm_financial_mgmt.settings:
     accounting_method:
       type: string
       label: 'Accounting method (cash|accrual)'
+    basic_mode:
+      type: boolean
+      label: 'Basic mode — income & expense tracking only (hide the advanced apparatus)'
     tax_planning_enabled:
       type: boolean
       label: 'Enable Schedule F tax planning/tracking'

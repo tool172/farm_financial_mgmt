@@ -1,3 +1,4 @@
 currency: USD
 accounting_method: cash
+basic_mode: false
 tax_planning_enabled: true

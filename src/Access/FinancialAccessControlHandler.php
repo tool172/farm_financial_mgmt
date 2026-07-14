@@ -23,6 +23,9 @@ class FinancialAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account): AccessResultInterface {
+    if ($basic = $this->basicModeBlock()) {
+      return $basic;
+    }
     if ($account->hasPermission('administer financial mgmt')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
@@ -37,10 +40,29 @@ class FinancialAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL): AccessResultInterface {
+    if ($basic = $this->basicModeBlock()) {
+      return $basic;
+    }
     if ($account->hasPermission('administer financial mgmt')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
     return AccessResult::allowedIfHasPermission($account, 'manage financial transactions');
+  }
+
+  /**
+   * Forbids the capital entity types (depreciable asset, liability) in Basic
+   * mode. Returns NULL for the always-available ledger entities, or when Full.
+   */
+  protected function basicModeBlock(): ?AccessResultInterface {
+    if (!in_array($this->entityTypeId, ['depreciable_asset', 'financial_liability'], TRUE)) {
+      return NULL;
+    }
+    $config = \Drupal::config('farm_financial_mgmt.settings');
+    if ((bool) ($config->get('basic_mode') ?? FALSE)) {
+      return AccessResult::forbidden('Basic mode: capital accounting is hidden.')
+        ->addCacheableDependency($config);
+    }
+    return NULL;
   }
 
 }

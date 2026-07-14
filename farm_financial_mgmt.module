@@ -22,8 +22,30 @@ declare(strict_types=1);
  * changes so this re-runs.
  */
 function farm_financial_mgmt_menu_links_discovered_alter(array &$links): void {
-  $enabled = \Drupal::config('farm_financial_mgmt.settings')->get('tax_planning_enabled') ?? TRUE;
-  if (!$enabled) {
+  $config = \Drupal::config('farm_financial_mgmt.settings');
+  $basic = (bool) ($config->get('basic_mode') ?? FALSE);
+
+  // Basic mode: income/expense only — hide the whole tax & capital-accounting
+  // apparatus (reports, depreciation, balance sheet, enterprise P&L, liabilities).
+  if ($basic) {
+    foreach ([
+      'farm_financial_mgmt.report.tax_summary',
+      'farm_financial_mgmt.report.depreciation',
+      'farm_financial_mgmt.report.form_4797',
+      'farm_financial_mgmt.report.enterprise_pl',
+      'farm_financial_mgmt.report.balance_sheet',
+      'farm_financial_mgmt.depreciable_assets',
+      'farm_financial_mgmt.liabilities',
+      'farm_financial_mgmt.depreciation_limits',
+    ] as $id) {
+      unset($links[$id]);
+    }
+    return;
+  }
+
+  // Full mode: the tax-planning sub-toggle still hides just the tax reports.
+  $tax_enabled = $config->get('tax_planning_enabled') ?? TRUE;
+  if (!$tax_enabled) {
     unset($links['farm_financial_mgmt.report.tax_summary']);
     // The depreciation schedule and Form 4797 are tax-facing and tax-gated, so
     // hide their links alongside the Tax Summary.

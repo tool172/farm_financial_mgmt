@@ -77,11 +77,26 @@ class SettingsForm extends ConfigFormBase {
       '#required' => TRUE,
     ];
 
+    $form['mode'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Mode'),
+      '#open' => TRUE,
+    ];
+    $form['mode']['basic_mode'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Basic mode — income &amp; expense tracking only'),
+      '#default_value' => $config->get('basic_mode') ?? FALSE,
+      '#description' => $this->t('<strong>Basic</strong> keeps just the essentials: the transaction ledger, Profit &amp; Loss, Income &amp; Spending by category, Cash Flow, Monthly, and Per-Record P&amp;L. <strong>Full</strong> (leave unchecked) adds the tax &amp; capital-accounting apparatus — Schedule&nbsp;F Tax Summary, Depreciation (schedule, limits, and depreciable assets), Form&nbsp;4797, Balance Sheet, Enterprise P&amp;L, and Liabilities. This is a display toggle only: no data is deleted, so switching back to Full brings everything back exactly as it was.'),
+    ];
+
     $form['tax_planning_enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable tax planning (Schedule F)'),
-      '#description' => $this->t('Turns the Tax Summary report on or off. Category tax mappings are retained either way, so this is a display toggle, not a data change.'),
+      '#description' => $this->t('Full mode only. Turns the Schedule F Tax Summary, Depreciation Schedule, and Form 4797 on or off. Category tax mappings are retained either way, so this is a display toggle, not a data change.'),
       '#default_value' => $config->get('tax_planning_enabled') ?? TRUE,
+      '#states' => [
+        'disabled' => [':input[name="basic_mode"]' => ['checked' => TRUE]],
+      ],
     ];
 
     $form['balance_sheet'] = [
@@ -89,6 +104,10 @@ class SettingsForm extends ConfigFormBase {
       '#title' => $this->t('Balance sheet — entered figures'),
       '#description' => $this->t('The balance sheet is asset-side-complete (the depreciation schedule and valuations feed it automatically). Cash cannot be derived from an income/expense ledger, so it is entered here.'),
       '#open' => TRUE,
+      // The balance sheet is hidden in Basic mode, so its entry is moot there.
+      '#states' => [
+        'visible' => [':input[name="basic_mode"]' => ['checked' => FALSE]],
+      ],
     ];
     $form['balance_sheet']['cash_position'] = [
       '#type' => 'number',
@@ -114,6 +133,7 @@ class SettingsForm extends ConfigFormBase {
     $this->config(self::SETTINGS)
       ->set('currency', $form_state->getValue('currency'))
       ->set('accounting_method', $form_state->getValue('accounting_method'))
+      ->set('basic_mode', (bool) $form_state->getValue('basic_mode'))
       ->set('tax_planning_enabled', (bool) $form_state->getValue('tax_planning_enabled'))
       ->set('cash_position', (float) $form_state->getValue('cash_position'))
       ->set('cash_as_of', $form_state->getValue('cash_as_of') ?: '')

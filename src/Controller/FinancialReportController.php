@@ -56,12 +56,27 @@ class FinancialReportController extends ControllerBase {
    */
   public function taxAccess(AccountInterface $account): AccessResultInterface {
     $config = $this->config('farm_financial_mgmt.settings');
+    $basic = (bool) ($config->get('basic_mode') ?? FALSE);
     $enabled = $config->get('tax_planning_enabled') ?? TRUE;
-    if (!$enabled) {
+    if ($basic || !$enabled) {
       return AccessResult::forbidden('Tax planning is disabled.')->addCacheableDependency($config);
     }
     return AccessResult::allowedIfHasPermission($account, 'view financial reports')
       ->addCacheableDependency($config);
+  }
+
+  /**
+   * Access for Full-mode-only routes (balance sheet, enterprise P&L, capital).
+   *
+   * Forbidden in Basic mode; otherwise defers to the route's permission.
+   */
+  public function basicModeAccess(): AccessResultInterface {
+    $config = $this->config('farm_financial_mgmt.settings');
+    if ((bool) ($config->get('basic_mode') ?? FALSE)) {
+      return AccessResult::forbidden('Basic mode: advanced financials are hidden.')
+        ->addCacheableDependency($config);
+    }
+    return AccessResult::allowed()->addCacheableDependency($config);
   }
 
   /**

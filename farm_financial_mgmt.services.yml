@@ -83,3 +83,8 @@ services:
   farm_financial_mgmt.csv_importer:
     alias: Drupal\farm_financial_mgmt\Service\Export\CsvImporter
     public: true
+
+  farm_financial_mgmt.basic_mode_route_subscriber:
+    class: Drupal\farm_financial_mgmt\Routing\BasicModeRouteSubscriber
+    tags:
+      - { name: event_subscriber }
